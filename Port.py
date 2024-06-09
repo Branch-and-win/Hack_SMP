@@ -18,4 +18,10 @@ class Port:
     def add_min_dist(self, key, value):
         self.min_dist[key] = value
         return
+
+    def __str__(self):
+        return f"P({self.id}, {self.name})"
+
+    def __repr__(self):
+        return f"P({self.id}, {self.name})"
         

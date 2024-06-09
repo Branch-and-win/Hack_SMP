@@ -10,7 +10,12 @@ class Vessel:
         self.class_type = class_type
         self.locations_by_vessel = []
 
-
     def add_location(self, location):
         self.locations_by_vessel.append(location)
         return
+
+    def __str__(self):
+        return f"V({self.id}, {self.name})"
+
+    def __repr__(self):
+        return f"V({self.id}, {self.name})"
