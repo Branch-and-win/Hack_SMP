@@ -103,8 +103,8 @@ class ModelOutput:
             lon="longitude",
             text="name",
             zoom=1,
-            height=1080,
-            width=1920
+            height=960,
+            width=1820,
         )
         always_visible = [True]
 
@@ -117,6 +117,7 @@ class ModelOutput:
             time_to = row.time_from + row.duration
             vessel_dynamic_map_list.append((
                 row.vessel_name,
+                row.is_icebreaker,
                 row.time_from,
                 port_from.longitude,
                 port_from.latitude,
@@ -124,6 +125,7 @@ class ModelOutput:
             vessel_dynamic_map_list += [
                 (
                     row.vessel_name,
+                    row.is_icebreaker,
                     # datetime.strftime(dt, '%Y-%m-%d'),
                     # self.input.start_date + timedelta(hours=t),
                     row.time_from + t,
@@ -134,11 +136,12 @@ class ModelOutput:
             ]
             vessel_dynamic_map_list.append((
                 row.vessel_name,
+                row.is_icebreaker,
                 time_to,
                 port_to.longitude,
                 port_to.latitude,
             ))
-        vessel_dynamic_map_df = pd.DataFrame(vessel_dynamic_map_list, columns=['vessel_name', 't', 'longitude', 'latitude'])
+        vessel_dynamic_map_df = pd.DataFrame(vessel_dynamic_map_list, columns=['vessel_name', 'is_icebreaker', 't', 'longitude', 'latitude'])
         # vessel_dynamic_map_df.to_excel('output/dyn.xlsx')
         fig1 = px.scatter_mapbox(
             vessel_dynamic_map_df,
@@ -146,9 +149,10 @@ class ModelOutput:
             lon="longitude",
             hover_name="vessel_name",
             zoom=1,
-            height=1080,
-            width=1920,
+            height=960,
+            width=1820,
             animation_frame='t',
+            color='is_icebreaker'
         )
         fig1['data'][0]['marker']['size'] = 10
         # fig1['data'][0]['marker']['color'] = 'red'
