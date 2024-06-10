@@ -43,9 +43,9 @@ class ModelInput:
         self.locations_dict = {}
 
         self.read_ports_xlsx()
+        self.read_edges_xlsx()
         self.read_vessels_xlsx()
         self.read_icebreakers_xlsx()
-        self.read_edges_xlsx()
         self.generate_departures()
         self.generate_locations()
         self.generate_links()
@@ -80,16 +80,27 @@ class ModelInput:
     def read_vessels_xlsx(self) -> None:
         vessel_data = pd.read_excel(os.path.join(self.input_folder, 'model_data.xlsx'), sheet_name='vessels')
         vessel_data['date_start'] = pd.to_datetime(vessel_data['date_start'])
-        for _, row in vessel_data.iterrows():
+        for row in vessel_data.itertuples():
+            _, best_routes = self.main_graph.k_shortest_paths(
+                self.ports_dict[row.start_point_id],
+                self.ports_dict[row.end_point_id],
+                k=10,
+            )
+            possible_edges = {
+                self.edges_dict[port_start.id, port_end.id]
+                for best_route in best_routes
+                for port_start, port_end in zip(best_route[:-1], best_route[1:])
+            }
             vessel = Vessel(
-                id=row['vessel_id'],
-                name=row['vessel_name'],
+                id=row.vessel_id,
+                name=row.vessel_name,
                 is_icebreaker=False,
-                port_start=self.ports_dict[row['start_point_id']],
-                port_end=self.ports_dict[row['end_point_id']],
-                time_start=self.date_to_time(row['date_start']),
-                max_speed=row['max_speed'],
-                class_type=row['class_type']
+                port_start=self.ports_dict[row.start_point_id],
+                port_end=self.ports_dict[row.end_point_id],
+                time_start=self.date_to_time(row.date_start),
+                max_speed=row.max_speed,
+                class_type=row.class_type,
+                possible_edges=possible_edges,
             )
             self.vessels.append(vessel)
             self.vessels_dict[vessel.id] = vessel
@@ -151,7 +162,10 @@ class ModelInput:
                 allowed_vessels = []
                 for v in self.vessels:
                     # Заплатка, пока нет норм расчета duration
-                    if t + (1 if e.port_from.id == e.port_to.id else round(e.distance / 15, 0)) in self.times:
+                    if (
+                        t + (1 if e.port_from.id == e.port_to.id else round(e.distance / 15, 0)) in self.times
+                        and (v.is_icebreaker or e in v.possible_edges)
+                    ):
                         departure = Departure(
                             vessel=v,
                             edge=e,
@@ -186,7 +200,11 @@ class ModelInput:
 
     def generate_links(self):
         for d in self.departures:
-            if d.time + d.duration in self.times:
+            if (
+                d.time + d.duration in self.times
+                and (d.vessel, d.edge.port_from, d.time) in self.locations_dict
+                and (d.vessel, d.edge.port_to, d.time + d.duration) in self.locations_dict
+            ):
                 self.locations_dict[d.vessel, d.edge.port_to, d.time + d.duration].add_input_departure(d)
                 self.locations_dict[d.vessel, d.edge.port_from, d.time].add_output_departure(d)
             for icebreaker in [v for v in self.vessels if v.is_icebreaker and v.id != d.vessel.id]:

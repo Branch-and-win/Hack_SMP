@@ -100,7 +100,7 @@ class Model:
 		# Solver.options['allowableGap' ] = 0.02
 
 		solver = SolverFactory('appsi_highs')
-		solver.options['time_limit'] = 300
+		solver.options['time_limit'] = 900
 		solver.options['mip_rel_gap'] = 0.02
 
 		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
