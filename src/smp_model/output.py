@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 
 import pandas as pd
 from pyomo.core import value
@@ -80,6 +81,8 @@ class ModelOutput:
         return
 
     def plot_routes(self):
+        # self.result_departures_df = pd.read_excel(os.path.join('output', 'departures.xlsx'), sheet_name='Sheet1')
+        self.result_departures_df.sort_values(by=['time_from'], inplace=True)
         ports_df = pd.DataFrame(
             [(
                 p.id,
@@ -94,14 +97,70 @@ class ModelOutput:
                 'latitude',
             ]
         )
-        fig = px.scatter_mapbox(ports_df,
-                                lat="latitude",
-                                lon="longitude",
-                                text="name",
-                                zoom=1,
-                                height=1080,
-                                width=1920)
+        fig = px.scatter_mapbox(
+            ports_df,
+            lat="latitude",
+            lon="longitude",
+            text="name",
+            zoom=1,
+            height=1080,
+            width=1920
+        )
         always_visible = [True]
+
+        vessel_dynamic_map_list = []
+        for row in self.result_departures_df.itertuples():
+            port_from = self.input.ports_dict[row.port_from_id]
+            port_to = self.input.ports_dict[row.port_to_id]
+            lon_delta = port_to.longitude - port_from.longitude
+            lan_delta = port_to.latitude - port_from.latitude
+            time_to = row.time_from + row.duration
+            vessel_dynamic_map_list.append((
+                row.vessel_name,
+                row.time_from,
+                port_from.longitude,
+                port_from.latitude,
+            ))
+            vessel_dynamic_map_list += [
+                (
+                    row.vessel_name,
+                    # datetime.strftime(dt, '%Y-%m-%d'),
+                    # self.input.start_date + timedelta(hours=t),
+                    row.time_from + t,
+                    port_from.longitude + t * lon_delta / (time_to - row.time_from),
+                    port_from.latitude + t * lan_delta / (time_to - row.time_from),
+                )
+                for t in range(1, time_to - row.time_from, 1)
+            ]
+            vessel_dynamic_map_list.append((
+                row.vessel_name,
+                time_to,
+                port_to.longitude,
+                port_to.latitude,
+            ))
+        vessel_dynamic_map_df = pd.DataFrame(vessel_dynamic_map_list, columns=['vessel_name', 't', 'longitude', 'latitude'])
+        # vessel_dynamic_map_df.to_excel('output/dyn.xlsx')
+        fig1 = px.scatter_mapbox(
+            vessel_dynamic_map_df,
+            lat="latitude",
+            lon="longitude",
+            hover_name="vessel_name",
+            zoom=1,
+            height=1080,
+            width=1920,
+            animation_frame='t',
+        )
+        fig1['data'][0]['marker']['size'] = 10
+        # fig1['data'][0]['marker']['color'] = 'red'
+        # fig1.add_scattermapbox(
+        #     ports_df,
+        #     lat="latitude",
+        #     lon="longitude",
+        #     text="name",
+        #     zoom=1,
+        #     height=1080,
+        #     width=1920
+        # )
 
         all_edges = []
         for id, edge in enumerate(self.input.edges):
@@ -121,9 +180,10 @@ class ModelOutput:
         for id in range(len(self.input.edges)):
             edge_df = edges_df[edges_df['id'] == id]
             fig.add_traces(px.line_mapbox(edge_df, lat="latitude", lon="longitude").data)
+            fig1.add_traces(px.line_mapbox(edge_df, lat="latitude", lon="longitude").data)
+            fig1['data'][1 + id]['line']['color'] = 'grey'
             always_visible.append(True)
 
-        self.result_departures_df.sort_values(by=['time_from'], inplace=True)
         unique_vessels = self.result_departures_df['vessel_name'].unique()
         for v_num, vessel_name in enumerate(unique_vessels):
             vessel_route_df = self.result_departures_df[self.result_departures_df['vessel_name'] == vessel_name]
@@ -192,3 +252,7 @@ class ModelOutput:
         fig.update_layout(mapbox_style="open-street-map")
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         fig.show()
+
+        fig1.update_layout(mapbox_style="open-street-map")
+        fig1.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        fig1.show()
