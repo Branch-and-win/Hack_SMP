@@ -81,7 +81,7 @@ class ModelOutput:
         return
 
     def plot_routes(self):
-        # self.result_departures_df = pd.read_excel(os.path.join('output', 'departures.xlsx'), sheet_name='Sheet1')
+        self.result_departures_df = pd.read_excel(os.path.join('output', 'departures.xlsx'), sheet_name='Sheet1')
         self.result_departures_df.sort_values(by=['time_from'], inplace=True)
         ports_df = pd.DataFrame(
             [(
@@ -114,11 +114,13 @@ class ModelOutput:
             port_to = self.input.ports_dict[row.port_to_id]
             lon_delta = port_to.longitude - port_from.longitude
             lan_delta = port_to.latitude - port_from.latitude
-            time_to = row.time_from + row.duration
+            time_from = int(row.time_from)
+            duration = int(row.duration)
+            time_to = time_from + duration
             vessel_dynamic_map_list.append((
                 row.vessel_name,
                 row.is_icebreaker,
-                row.time_from,
+                time_from,
                 port_from.longitude,
                 port_from.latitude,
             ))
@@ -128,11 +130,11 @@ class ModelOutput:
                     row.is_icebreaker,
                     # datetime.strftime(dt, '%Y-%m-%d'),
                     # self.input.start_date + timedelta(hours=t),
-                    row.time_from + t,
-                    port_from.longitude + t * lon_delta / (time_to - row.time_from),
-                    port_from.latitude + t * lan_delta / (time_to - row.time_from),
+                    time_from + t,
+                    port_from.longitude + t * lon_delta / (time_to - time_from),
+                    port_from.latitude + t * lan_delta / (time_to - time_from),
                 )
-                for t in range(1, time_to - row.time_from, 1)
+                for t in range(1, time_to - time_from, 1)
             ]
             vessel_dynamic_map_list.append((
                 row.vessel_name,
