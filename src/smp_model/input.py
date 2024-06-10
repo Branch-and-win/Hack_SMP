@@ -118,12 +118,14 @@ class ModelInput:
             edge_1 = Edge(
                 port_from=self.ports_dict[row.start_point_id],
                 port_to=self.ports_dict[row.end_point_id],
-                distance=row.length
+                distance=row.length,
+                avg_norm=row.avg_norm
             )
             edge_2 = Edge(
                 port_from=self.ports_dict[row.end_point_id],
                 port_to=self.ports_dict[row.start_point_id],
-                distance=row.length
+                distance=row.length,
+                avg_norm=row.avg_norm
             )
             self.edges.append(edge_1)
             self.edges.append(edge_2)
@@ -134,7 +136,8 @@ class ModelInput:
             edge = Edge(
                 port_from=p, 
                 port_to=p, 
-                distance=0
+                distance=0,
+                avg_norm=21
             )
             self.edges.append(edge)
             self.edges_dict[edge.port_from.id, edge.port_to.id] = edge

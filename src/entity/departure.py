@@ -13,7 +13,8 @@ class Departure:
         if (
                 vessel.is_icebreaker
                 or self.edge.is_fict
-                or self.edge.port_to.id != 41
+                or self.edge.avg_norm >= 19.5
+                or (self.edge.avg_norm >= 14.5 and vessel.class_type == 'Arc 7')
         ):
             self.is_icebreaker_assistance = False
         else:
