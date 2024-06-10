@@ -18,7 +18,7 @@ from src.graph.base_graph import BaseGraph
 class ModelInput:
     def __init__(self, input_folder: str):
         self.hours_in_interval: int = 1
-        self.hours_in_horizon: int = 300
+        self.hours_in_horizon: int = 20
         self.start_date: datetime = datetime(2022, 2, 27)
         self.input_folder: str = input_folder
 
