@@ -84,7 +84,7 @@ class ModelInput:
             _, best_routes = self.main_graph.k_shortest_paths(
                 self.ports_dict[row.start_point_id],
                 self.ports_dict[row.end_point_id],
-                k=10,
+                k=20,
             )
             possible_edges = {
                 self.edges_dict[port_start.id, port_end.id]
@@ -187,7 +187,8 @@ class ModelInput:
                 else:
                     min_time_to_port_end = 0
                 for t in self.times:
-                    if v.time_start + min_time_to_current_port <= t:
+                    # TODO: Фильтр убивает
+                    if True or v.time_start + min_time_to_current_port <= t:
                         location = Location(
                             vessel=v, 
                             port=p, 

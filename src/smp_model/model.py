@@ -82,12 +82,19 @@ class Model:
 		## Целевая функция 
 
 		# Минимизация суммарного времени в пути и отклонения от конечного порта для каждого судна
-		self.model.obj = Objective(expr=(
-			quicksum(
-				(l.time - l.vessel.time_start) * self.model.stop_place[l]
-				+ (0 if l.vessel.is_icebreaker else (l.min_time_to_end_port * self.model.stop_place[l]) * 5)
-				for l in input.locations)
-		), sense=minimize)
+		self.model.obj = Objective(
+			expr=(
+				quicksum(
+					(l.time - l.vessel.time_start) * self.model.stop_place[l]
+					+ (0 if l.vessel.is_icebreaker else (l.min_time_to_end_port * self.model.stop_place[l]) * 5)
+					for l in input.locations
+				)
+				+ quicksum(
+					d for d in self.model.departure.values()
+				) / 10
+			)
+			, sense=minimize
+		)
 
 		return
 
