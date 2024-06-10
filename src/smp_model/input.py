@@ -167,19 +167,21 @@ class ModelInput:
     def generate_locations(self):
         for v in self.vessels:
             for p in self.ports:
+                min_time_to_current_port = self.main_graph.k_shortest_paths(v.port_start, p)[0][0] / v.max_speed
                 if v.port_end:
                     min_time_to_port_end = self.main_graph.k_shortest_paths(p, v.port_end)[0][0] / v.max_speed
                 else:
                     min_time_to_port_end = 0
                 for t in self.times:
-                    location = Location(
-                        vessel=v, 
-                        port=p, 
-                        time=t,
-                        min_time_to_port_end=min_time_to_port_end,
-                    )
-                    self.locations.append(location)  
-                    self.locations_dict[v, p, t] = location
+                    if v.time_start + min_time_to_current_port <= t:
+                        location = Location(
+                            vessel=v, 
+                            port=p, 
+                            time=t,
+                            min_time_to_port_end=min_time_to_port_end,
+                        )
+                        self.locations.append(location)  
+                        self.locations_dict[v, p, t] = location
         return
 
     def generate_links(self):

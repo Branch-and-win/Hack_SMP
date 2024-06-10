@@ -85,7 +85,7 @@ class Model:
 		self.model.obj = Objective(expr=(
 			quicksum(
 				(l.time - l.vessel.time_start) * self.model.stop_place[l]
-				+ (0 if l.vessel.is_icebreaker else (l.port.min_dist[l.vessel.port_end] * self.model.stop_place[l]) * 10)
+				+ (0 if l.vessel.is_icebreaker else (l.min_time_to_end_port * self.model.stop_place[l]) * 5)
 				for l in input.locations)
 		), sense=minimize)
 
