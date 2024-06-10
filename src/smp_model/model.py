@@ -1,8 +1,8 @@
 from pyomo.environ import Var, Binary, Objective, quicksum, minimize, SolverFactory, ConcreteModel, value
 import pandas as pd
 
-from input import ModelInput
-from utils import constraints_from_dict
+from src.smp_model.input import ModelInput
+from src.utils import constraints_from_dict
 
 
 class Model:

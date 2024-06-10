@@ -1,5 +1,5 @@
-from Edge import Edge
-from Vessel import Vessel
+from src.entity.edge import Edge
+from src.entity.vessel import Vessel
 
 
 class Departure:

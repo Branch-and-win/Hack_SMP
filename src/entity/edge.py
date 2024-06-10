@@ -1,4 +1,4 @@
-from Port import Port
+from src.entity.port import Port
 
 
 class Edge:

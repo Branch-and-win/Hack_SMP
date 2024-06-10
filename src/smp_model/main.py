@@ -1,5 +1,5 @@
-from input import ModelInput
-from model import Model
+from src.smp_model.input import ModelInput
+from src.smp_model.model import Model
 
 
 if __name__ == '__main__':

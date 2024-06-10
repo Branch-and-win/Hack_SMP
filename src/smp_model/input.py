@@ -1,16 +1,18 @@
 import os
 
+import networkx as nx
 import pandas as pd
 import math
 from typing import Dict, List, Tuple
 from datetime import datetime
 
-from EdgeTConnection import EdgeTConnection
-from Port import Port
-from Vessel import Vessel
-from Edge import Edge
-from Departure import Departure
-from Location import Location
+from src.entity.edge_t_connection import EdgeTConnection
+from src.entity.port import Port
+from src.entity.vessel import Vessel
+from src.entity.edge import Edge
+from src.entity.departure import Departure
+from src.entity.location import Location
+from src.graph.base_graph import BaseGraph
 
 
 class ModelInput:
@@ -19,6 +21,8 @@ class ModelInput:
         self.hours_in_horizon: int = 300
         self.start_date: datetime = datetime(2022, 2, 27)
         self.input_folder: str = input_folder
+
+        self.main_graph = BaseGraph()
 
         self.times: List[int] = self.generate_time()
 
@@ -110,21 +114,22 @@ class ModelInput:
     
     def read_edges_xlsx(self) -> None:
         edge_data = pd.read_excel(os.path.join(self.input_folder, 'model_data.xlsx'), sheet_name='edges')
-        for _, row in edge_data.iterrows():
+        for row in edge_data.itertuples():
             edge_1 = Edge(
-                port_from=self.ports_dict[row['start_point_id']], 
-                port_to=self.ports_dict[row['end_point_id']], 
-                distance=row['length']
+                port_from=self.ports_dict[row.start_point_id],
+                port_to=self.ports_dict[row.end_point_id],
+                distance=row.length
             )
             edge_2 = Edge(
-                port_from=self.ports_dict[row['end_point_id']], 
-                port_to=self.ports_dict[row['start_point_id']], 
-                distance=row['length']
+                port_from=self.ports_dict[row.end_point_id],
+                port_to=self.ports_dict[row.start_point_id],
+                distance=row.length
             )
             self.edges.append(edge_1)
             self.edges.append(edge_2)
             self.edges_dict[edge_1.port_from.id, edge_1.port_to.id] = edge_1
             self.edges_dict[edge_2.port_from.id, edge_2.port_to.id] = edge_2
+            self.main_graph.add_edge(self.ports_dict[row.start_point_id], self.ports_dict[row.end_point_id], length=row.length, weight=0)
         for p in self.ports:
             edge = Edge(
                 port_from=p, 
@@ -159,11 +164,16 @@ class ModelInput:
     def generate_locations(self):
         for v in self.vessels:
             for p in self.ports:
+                if v.port_end:
+                    min_time_to_port_end = self.main_graph.k_shortest_paths(p, v.port_end)[0][0] / v.max_speed
+                else:
+                    min_time_to_port_end = 0
                 for t in self.times:
                     location = Location(
                         vessel=v, 
                         port=p, 
-                        time=t
+                        time=t,
+                        min_time_to_port_end=min_time_to_port_end,
                     )
                     self.locations.append(location)  
                     self.locations_dict[v, p, t] = location
