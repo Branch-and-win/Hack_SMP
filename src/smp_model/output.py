@@ -86,7 +86,7 @@ class ModelOutput:
         self.result_departures_df.sort_values(by=['time_from'], inplace=True)
         self.result_departures_df['time_to'] = self.result_departures_df['time_from'] + self.result_departures_df['duration']
 
-        icebreakers_departures = self.result_departures_df[self.result_departures_df['is_icebreaker'] is True]
+        icebreakers_departures = self.result_departures_df[self.result_departures_df['is_icebreaker'] == True]
         icebreakers_departures_dict = icebreakers_departures.groupby(['time_from', 'port_from', 'port_to']).agg(
             {'vessel_name': lambda x: list(x)}).to_dict(orient='index')
         self.result_departures_df['edge_type'] = self.result_departures_df.apply(
