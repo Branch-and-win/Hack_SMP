@@ -154,6 +154,32 @@ class ModelInput:
             self.edges_dict[edge.port_from.id, edge.port_to.id] = edge
         return 
     
+    def calculate_ice_depending_values(vessel: Vessel, edge: Edge) -> List[Tuple[float, bool, bool]]:
+        integer_integral_ice = round(edge.avg_norm, 0)
+        if edge.is_fict:
+            return [(0, False, True)]
+        if integer_integral_ice < 10:
+            return [(1000, False, False)]
+        if integer_integral_ice >= 20:
+            return [(vessel.max_speed, False, True)]
+        if vessel.name in ['50 лет Победы', 'Ямал']:
+            return [(integer_integral_ice, False, True)]
+        if vessel.name in ['Вайгач', 'Таймыр']:
+            if integer_integral_ice >= 15:
+                return [(integer_integral_ice * 0.9, False, True)]
+            if integer_integral_ice >= 10:
+                return [(integer_integral_ice * 0.75, False, True)]
+        if vessel.class_type in ['Arc 4', 'Arc 5', 'Arc 6']:
+            if integer_integral_ice >= 15:
+                return [(vessel.max_speed * 0.8, True, True)]
+            if integer_integral_ice >= 10:
+                return [(vessel.max_speed * 0.7, True, True)]
+        if vessel.class_type == 'Arc 7':
+            if integer_integral_ice >= 15:
+                return [(integer_integral_ice, True, True), (vessel.max_speed * 0.6, False, True)]
+            if integer_integral_ice >= 10:
+                return [(integer_integral_ice * 0.8, True, True), (vessel.max_speed * 0.15, False, True)]  
+    
     # Требует умной фильтрации
     def generate_departures(self):
         for e in self.edges:
@@ -161,16 +187,21 @@ class ModelInput:
                 self.edge_t_connections[e, t] = EdgeTConnection(e, t)
                 allowed_vessels = []
                 for v in self.vessels:
-                    departure = Departure(
-                        vessel=v,
-                        edge=e,
-                        time=t
-                    )
-                    if (departure.is_possible and t + departure.duration in self.times
-                    and (v.is_icebreaker or e in v.possible_edges)):
-                        self.departures.append(departure)
-                        self.departures_dict[v, e, t] = departure
-                        allowed_vessels.append(v)
+                    for (speed, is_icebreaker_assistance, is_possible) in ModelInput.calculate_ice_depending_values(v, e):
+                        if is_possible:
+                            departure = Departure(
+                                vessel=v,
+                                edge=e,
+                                time=t,
+                                speed=speed,
+                                is_icebreaker_assistance=is_icebreaker_assistance
+                            )
+                            if (t + departure.duration in self.times
+                            and (v.is_icebreaker or e in v.possible_edges)):
+                                self.departures.append(departure)
+                                self.departures_dict[v, e, t, is_icebreaker_assistance] = departure
+                                allowed_vessels.append(v)
+                allowed_vessels = list(set(allowed_vessels))
                 self.edge_t_connections[e, t].set_allowed_vessels(allowed_vessels)
         return 
     

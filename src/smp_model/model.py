@@ -58,6 +58,7 @@ class Model:
 			)
 		constraints_from_dict(cons_one_stop, self.model, 'cons_one_stop')
 
+		'''
 		# Ограничение: запрет движения без ледокола
 		cons_icebreaker_assistance = {}
 		for d in self.input.departures:
@@ -68,20 +69,21 @@ class Model:
 					sum(self.model.departure[d_i] for d_i in d.possible_icebreaker_departures)
 				)
 		constraints_from_dict(cons_icebreaker_assistance, self.model, 'cons_icebreaker_assistance')
+		'''
 
-		# Ограничение: максимальное количество суден в караване
+		# Ограничение: максимальное количество судов в караване
 		cons_max_vessels_assistance = {}
 		for (e, t) in self.input.edge_t_connections:
 			cons_max_vessels_assistance[e, t] = (
 				quicksum(
-					self.model.departure[self.input.departures_dict[v, e, t]]
+					self.model.departure[self.input.departures_dict[v, e, t, True]]
 					for v in self.input.edge_t_connections[e, t].allowed_vessels
-					if self.input.departures_dict[v, e, t].is_icebreaker_assistance
+					if  (v, e, t, True) in self.input.departures_dict.keys()
 				)
 				<=
 				# TODO: сделать параметром?
 				3 * quicksum(
-					self.model.departure[self.input.departures_dict[v, e, t]]
+					self.model.departure[self.input.departures_dict[v, e, t, False]]
 					for v in self.input.edge_t_connections[e, t].allowed_vessels
 					if v.is_icebreaker
 				)
@@ -100,7 +102,7 @@ class Model:
 					for l in self.input.locations
 				)
 				+ quicksum(
-					d for d in self.model.departure.values()
+					d * 0 for d in self.model.departure.values()
 				) / 10
 			)
 			, sense=minimize
