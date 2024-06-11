@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from pyomo.core import value
 import plotly.express as px
+import plotly.figure_factory as ff
 
 
 class ModelOutput:
@@ -83,6 +84,27 @@ class ModelOutput:
     def plot_routes(self):
         self.result_departures_df = pd.read_excel(os.path.join('output', 'departures.xlsx'), sheet_name='Sheet1')
         self.result_departures_df.sort_values(by=['time_from'], inplace=True)
+        self.result_departures_df['time_to'] = self.result_departures_df['time_from'] + self.result_departures_df['duration']
+
+        icebreakers_departures = self.result_departures_df[self.result_departures_df['is_icebreaker'] is True]
+        icebreakers_departures_dict = icebreakers_departures.groupby(['time_from', 'port_from', 'port_to']).agg(
+            {'vessel_name': lambda x: list(x)}).to_dict(orient='index')
+        self.result_departures_df['edge_type'] = self.result_departures_df.apply(
+            lambda x: icebreakers_departures_dict[(x['time_from'], x['port_from'], x['port_to'])]['vessel_name'][0] if (
+                        x['need_assistance'] is True or x['is_icebreaker'] is True) else '', axis=1)
+        for i, row in self.result_departures_df.iterrows():
+
+            if row['port_from_id'] == row['port_to_id']:
+                self.result_departures_df.at[i, 'edge_type'] = 'Ожидание'
+            elif row['is_icebreaker']:
+                self.result_departures_df.at[i, 'edge_type'] = row['vessel_name']
+            elif row['need_assistance']:
+                self.result_departures_df.at[i, 'edge_type'] = icebreakers_departures_dict[(row['time_from'], row['port_from'], row['port_to'])]['vessel_name'][0]
+            else:
+                self.result_departures_df.at[i, 'edge_type'] = 'Перемещение судна'
+        self.result_departures_df['time_from_dt'] = self.result_departures_df['time_from'].apply(lambda x: self.input.start_date + timedelta(hours=x))
+        self.result_departures_df['time_to_dt'] = self.result_departures_df['time_to'].apply(lambda x: self.input.start_date + timedelta(hours=x))
+
         ports_df = pd.DataFrame(
             [(
                 p.id,
@@ -255,6 +277,8 @@ class ModelOutput:
                 )
             ])
 
+        fig2 = px.timeline(self.result_departures_df, x_start="time_from_dt", x_end="time_to_dt", y="vessel_name", color="edge_type")
+
         fig.update_layout(mapbox_style="open-street-map")
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         fig.show()
@@ -262,3 +286,5 @@ class ModelOutput:
         fig1.update_layout(mapbox_style="open-street-map")
         fig1.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         fig1.show()
+
+        fig2.show()
