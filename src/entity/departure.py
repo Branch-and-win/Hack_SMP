@@ -8,17 +8,8 @@ class Departure:
         self.vessel = vessel
         self.edge = edge
         self.time = time
-        self.duration = (1 if self.edge.port_from.id == self.edge.port_to.id else round(edge.distance / 15, 0))
-        # Признак: необходим ли ледокол для перемещения
-        if (
-                vessel.is_icebreaker
-                or self.edge.is_fict
-                or self.edge.avg_norm >= 19.5
-                or (self.edge.avg_norm >= 14.5 and vessel.class_type == 'Arc 7')
-        ):
-            self.is_icebreaker_assistance = False
-        else:
-            self.is_icebreaker_assistance = True
+        self.speed, self.is_icebreaker_assistance, self.is_possible = self.calculate_ice_depending_values()
+        self.duration = (1 if self.edge.is_fict else round(edge.distance / self.speed, 0))
         self.possible_icebreaker_departures = []
 
     def __repr__(self) -> str:
@@ -27,3 +18,40 @@ class Departure:
     def add_possible_icebreaker(self, departure):
         self.possible_icebreaker_departures.append(departure)
         return
+
+    def calculate_ice_depending_values(self):
+        integer_integral_ice = round(self.edge.avg_norm, 0)
+        if self.edge.is_fict:
+            return (0, False, True)
+        if self.vessel.name in ['50 лет Победы', 'Ямал']:
+            if integer_integral_ice >= 20:
+                return (self.vessel.max_speed, False, True)
+            if integer_integral_ice >= 10:
+                return (integer_integral_ice, False, True)
+            return (1000, False, False)
+        if self.vessel.name in ['Вайгач', 'Таймыр']:
+            if integer_integral_ice >= 20:
+                return (self.vessel.max_speed, False, True)
+            if integer_integral_ice >= 15:
+                return (integer_integral_ice * 0.9, False, True)
+            if integer_integral_ice >= 10:
+                return (integer_integral_ice * 0.75, False, True)
+            return (1000, False, False)
+        if self.vessel.class_type in ['Arc 4', 'Arc 5', 'Arc 6']:
+            if integer_integral_ice >= 20:
+                return (self.vessel.max_speed, False, True)  
+            if integer_integral_ice >= 15:
+                return (self.vessel.max_speed * 0.8, True, True)
+            if integer_integral_ice >= 10:
+                return (self.vessel.max_speed * 0.7, True, True)
+            return (1000, False, False)
+        if self.vessel.class_type == 'Arc 7':
+            if integer_integral_ice >= 20:
+                return (self.vessel.max_speed, False, True)  
+            if integer_integral_ice >= 15:
+                return (integer_integral_ice, False, True)
+            if integer_integral_ice >= 10:
+                return (integer_integral_ice * 0.8, True, True)
+            return (1000, False, False)
+                
+        

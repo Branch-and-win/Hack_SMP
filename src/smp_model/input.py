@@ -161,16 +161,13 @@ class ModelInput:
                 self.edge_t_connections[e, t] = EdgeTConnection(e, t)
                 allowed_vessels = []
                 for v in self.vessels:
-                    # Заплатка, пока нет норм расчета duration
-                    if (
-                        t + (1 if e.port_from.id == e.port_to.id else round(e.distance / 15, 0)) in self.times
-                        and (v.is_icebreaker or e in v.possible_edges)
-                    ):
-                        departure = Departure(
-                            vessel=v,
-                            edge=e,
-                            time=t
-                        )
+                    departure = Departure(
+                        vessel=v,
+                        edge=e,
+                        time=t
+                    )
+                    if (departure.is_possible and t + departure.duration in self.times
+                    and (v.is_icebreaker or e in v.possible_edges)):
                         self.departures.append(departure)
                         self.departures_dict[v, e, t] = departure
                         allowed_vessels.append(v)
