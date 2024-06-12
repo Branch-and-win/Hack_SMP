@@ -37,5 +37,6 @@ if __name__ == '__main__':
     dash = ModelDash(
         input_folder_path,
         output_folder_path,
+        [config.start_date_dt]
     )
     dash.plot_results()

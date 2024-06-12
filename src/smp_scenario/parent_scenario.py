@@ -54,7 +54,7 @@ class ParentScenario(Scenario):
                 self.config.duration_days):
 
             child_scenario_name = f'{self.name}_{days_from_start}'
-            child_scenario_folder_path = os.path.join(self.child_scenarios_folder_path, child_scenario_name)
+            child_sceenario_folder_path = os.path.join(self.child_scenarios_folder_path, child_scenario_name)
             self.clear_or_create_folder(child_scenario_folder_path)
 
             child_config = ScenarioConfig(
@@ -120,4 +120,5 @@ if __name__ == '__main__':
     base_parent_scenario = ParentScenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent'))
     base_parent_scenario.run_chain_optimization()
     base_parent_scenario.concatenate_chain_optimization_results()
-    base_parent_scenario.create_dash()
+    start_scenarios_dates = [child_scenario.config.start_date_dt for child_scenario in base_parent_scenario.child_scenario_chain]
+    base_parent_scenario.create_dash(start_scenarios_dates)

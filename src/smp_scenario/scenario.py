@@ -1,6 +1,7 @@
 import os
 import shutil
-from typing import Union
+from datetime import datetime
+from typing import Union, List
 
 import pandas as pd
 
@@ -178,13 +179,14 @@ class Scenario:
             model_config,
         )
 
-    def create_dash(self):
+    def create_dash(self, scenario_start_dates: List[datetime]):
         """
         Создание отчета
         """
         dash = ModelDash(
             self.input_folder_path,
             self.output_folder_path,
+            scenario_start_dates=scenario_start_dates
         )
         dash.plot_results()
 

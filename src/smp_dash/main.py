@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from typing import List
 
 import plotly.express as px
 import pandas as pd
@@ -9,9 +11,10 @@ class ModelDash:
     Графическое представление результатов оптимизации
     """
 
-    def __init__(self, input_folder_path: str, output_folder_path: str):
+    def __init__(self, input_folder_path: str, output_folder_path: str, scenario_start_dates: List[datetime]):
         self.input_folder_path = input_folder_path
         self.output_folder_path = output_folder_path
+        self.scenario_start_dates = scenario_start_dates
 
         with pd.ExcelFile(os.path.join(input_folder_path, 'model_data.xlsx')) as reader:
             self.ports_df = pd.read_excel(reader, sheet_name='points')
@@ -231,6 +234,8 @@ class ModelDash:
         }
         fig2 = px.timeline(self.result_departures_df, x_start="time_from_dt", x_end="time_to_dt", y="vessel_name",
                            color="edge_type", color_discrete_map=color_discrete_map, category_orders=category_orders)
+        for start_scenario_date in self.scenario_start_dates:
+            fig2.add_vline(x=start_scenario_date, line_width=3, line_color="red")
 
         fig.update_layout(mapbox_style="open-street-map")
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
