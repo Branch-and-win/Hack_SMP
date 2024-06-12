@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 import plotly.express as px
@@ -40,8 +40,8 @@ class ModelDash:
         self.result_departures_df['edge_type'] = self.result_departures_df.apply(
             lambda x: icebreakers_departures_dict[(x['time_from_dt'], x['port_from'], x['port_to'])]['vessel_name'][0] if (
                     x['need_assistance'] is True or x['is_icebreaker'] is True) else '', axis=1)
-        for i, row in self.result_departures_df.iterrows():
 
+        for i, row in self.result_departures_df.iterrows():
             if row['port_from_id'] == row['port_to_id']:
                 self.result_departures_df.at[i, 'edge_type'] = 'Ожидание'
             elif row['is_icebreaker']:
@@ -51,6 +51,17 @@ class ModelDash:
                 icebreakers_departures_dict[(row['time_from_dt'], row['port_from'], row['port_to'])]['vessel_name'][0]
             else:
                 self.result_departures_df.at[i, 'edge_type'] = 'Перемещение судна'
+
+        pd.options.mode.chained_assignment = None
+        vessel_ends_df = self.result_departures_df[
+            (self.result_departures_df['port_to'] == self.result_departures_df['target_port'])
+            & ~(self.result_departures_df['is_icebreaker'] == True)
+        ]
+        vessel_ends_df['edge_type'] = 'Порт назначения'
+        vessel_ends_df['port_from'] = vessel_ends_df['port_to']
+        vessel_ends_df['time_from_dt'] = vessel_ends_df['time_to_dt']
+        vessel_ends_df['time_to_dt'] = vessel_ends_df['time_to_dt'].apply(lambda x: x + timedelta(hours=3))
+        self.result_departures_df = pd.concat([self.result_departures_df, vessel_ends_df])
 
         ports_df = pd.DataFrame(
             [(
@@ -224,6 +235,7 @@ class ModelDash:
             'Вайгач': 'BlueViolet',
             'Ямал': 'DarkOliveGreen',
             'Таймыр': 'Chocolate',
+            'Порт назначения': 'Black',
         }
         vessel_order_list = (
             self.vessels_df.sort_values(by=['date_start'], ascending=False)['vessel_name'].unique().tolist()
