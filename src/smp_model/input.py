@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import math
 from typing import Dict, List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from src.smp_model.entity.edge_t_connection import EdgeTConnection
 from src.smp_model.entity.port import Port
@@ -90,7 +90,7 @@ class ModelInput:
     def read_vessels_xlsx(self) -> None:
         vessel_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='vessels')
         vessel_data = vessel_data[
-            (vessel_data['date_start'] <= self.config.end_date)
+            (vessel_data['date_start'] <= self.config.end_date + timedelta(hours=self.config.hours_in_cross))
             & (vessel_data['date_start'] >= self.config.start_date)
         ]
         for row in vessel_data.itertuples():
