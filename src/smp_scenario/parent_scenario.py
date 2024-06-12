@@ -96,6 +96,20 @@ class ParentScenario(Scenario):
         with pd.ExcelWriter(os.path.join(self.output_folder_path, 'departures.xlsx')) as writer:
             all_departures_df.to_excel(writer)
 
+    @classmethod
+    def create_base_scenario(cls, base_scenario_folder_path: str):
+        """
+        Создание базового сценария на основе данных из папки
+        """
+        input_folder_path = os.path.join(base_scenario_folder_path, 'input')
+        config = ParentScenarioConfig.create_from_json(os.path.join(input_folder_path, 'config.json'))
+
+        return cls(
+            name='base',
+            scenario_folder_path=base_scenario_folder_path,
+            config=config,
+        )
+
 
 if __name__ == '__main__':
     base_parent_scenario = ParentScenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent'))
