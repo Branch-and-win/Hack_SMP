@@ -90,7 +90,7 @@ class ModelInput:
     def read_vessels_xlsx(self) -> None:
         vessel_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='vessels')
         vessel_data = vessel_data[
-            (vessel_data['date_start'] <= self.config.end_date + timedelta(hours=self.config.hours_in_cross))
+            (vessel_data['date_start'] < self.config.end_date + timedelta(hours=self.config.hours_in_cross))
             & (vessel_data['date_start'] >= self.config.start_date)
         ]
         for row in vessel_data.itertuples():

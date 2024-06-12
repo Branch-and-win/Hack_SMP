@@ -1,6 +1,7 @@
 import os
 import shutil
 from datetime import timedelta, datetime
+from typing import List
 
 import pandas as pd
 
@@ -40,7 +41,7 @@ class ParentScenario(Scenario):
         # Путь к папке с дочерними сценариями
         self.child_scenarios_folder_path: str = os.path.join(self.scenario_folder_path, 'child_scenarios')
         # Список последовательных дочерних сценариев
-        self.child_scenario_chain = []
+        self.child_scenario_chain: List[Scenario] = []
         self.create_child_scenarios()
 
     def create_child_scenarios(self):
@@ -91,6 +92,10 @@ class ParentScenario(Scenario):
 
             with pd.ExcelFile(os.path.join(child_scenario.output_folder_path, 'departures.xlsx')) as reader:
                 child_scenario_departures_df = pd.read_excel(reader, sheet_name='Sheet1')
+            child_scenario_departures_df = child_scenario_departures_df[
+                (child_scenario_departures_df['time_from_dt'] < child_scenario.config.end_date_dt)
+                | (child_scenario_departures_df['time_to_dt'] <= child_scenario.config.end_date_dt)
+            ]
             all_departures_list.append(child_scenario_departures_df)
         all_departures_df = pd.concat(all_departures_list)
         with pd.ExcelWriter(os.path.join(self.output_folder_path, 'departures.xlsx')) as writer:
