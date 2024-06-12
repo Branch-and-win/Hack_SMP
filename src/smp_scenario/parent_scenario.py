@@ -54,7 +54,7 @@ class ParentScenario(Scenario):
                 self.config.duration_days):
 
             child_scenario_name = f'{self.name}_{days_from_start}'
-            child_sceenario_folder_path = os.path.join(self.child_scenarios_folder_path, child_scenario_name)
+            child_scenario_folder_path = os.path.join(self.child_scenarios_folder_path, child_scenario_name)
             self.clear_or_create_folder(child_scenario_folder_path)
 
             child_config = ScenarioConfig(
