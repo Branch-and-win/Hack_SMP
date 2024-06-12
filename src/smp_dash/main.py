@@ -214,8 +214,23 @@ class ModelDash:
                 )
             ])
 
+        color_discrete_map = {
+            'Перемещение судна': 'DeepSkyBlue',
+            'Ожидание': 'red',
+            '50 лет Победы': 'brown',
+            'Вайгач': 'BlueViolet',
+            'Ямал': 'DarkOliveGreen',
+            'Таймыр': 'Chocolate',
+        }
+        vessel_order_list = (
+            self.vessels_df.sort_values(by=['date_start'], ascending=False)['vessel_name'].unique().tolist()
+            + self.icebreakers_df.sort_values(by=['vessel_id'], ascending=False)['vessel_name'].unique().tolist()
+        )
+        category_orders = {
+            'vessel_name': vessel_order_list
+        }
         fig2 = px.timeline(self.result_departures_df, x_start="time_from_dt", x_end="time_to_dt", y="vessel_name",
-                           color="edge_type")
+                           color="edge_type", color_discrete_map=color_discrete_map, category_orders=category_orders)
 
         fig.update_layout(mapbox_style="open-street-map")
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
