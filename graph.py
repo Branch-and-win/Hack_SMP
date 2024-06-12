@@ -51,11 +51,14 @@ class Graph:
                 lon_v = self.lon_arr.iloc[row, col]
                 lat_v = self.lat_arr.iloc[row, col]
 
+                neigh_lat = []
+                neigh_lon = []
+                for (i,j) in filt_neighbours:
 
-                neigh_lat = self.lat_arr.loc[self.lat_arr.index.isin([i[0] for i in filt_neighbours]), [j[1] for j in filt_neighbours]]
-                neigh_lon = self.lon_arr.loc[self.lon_arr.index.isin([i[0] for i in filt_neighbours]), [j[1] for j in filt_neighbours]]
+                    neigh_lat.append(self.lat_arr.iloc[i, j])
+                    neigh_lon.append(self.lon_arr.iloc[i, j])
 
-                df['coords'] = list(zip(neigh_lat.values[0], neigh_lon.values[0]))
+                df['coords'] = list(zip(neigh_lat, neigh_lon))
                 df["distance"] = df["coords"].apply(lambda x: geopy.distance.geodesic(x, (lat_v, lon_v)).km)
                 self.graph[f'{row}_{col}'] = dict(zip([f"{k[0]}_{k[1]}" for k in filt_neighbours], df["distance"]))
 
@@ -75,19 +78,40 @@ class Graph:
             lon_p += 359
 
         # находим квадрат порта
-        df = self.all_info_df[(self.all_info_df['lat'] >= lat_p) & (self.all_info_df['lon'] >= lon_p)]
+        df = self.all_info_df[(self.all_info_df['lat'] >= lat_p) & (self.all_info_df['lon'] <= lon_p)]
         df['coords'] = list(zip(df['lat'].values, df['lon'].values))
         df["distance"] = df["coords"].apply(lambda x: geopy.distance.geodesic(x, (lat_p, lon_p)).km)
         df = df.sort_values(by='distance')
         i, j = list(map(lambda x: int(x), df['idx'].iloc[0].split('_')))
 
         # ищем соседей
-        neighbours = self.get_neighbors(1, i, j, self.vel_arr)
-        for (i, j) in neighbours:
-            a = self.all_info_df[self.all_info_df['idx'] == f'{i}_{j}'][['lat','lon']].values[0]
-            dist = geopy.distance.geodesic(a, (lat_p, lon_p)).km
-            self.graph[port].update({f'{i}_{j}': dist})
-            self.graph[f'{i}_{j}'].update({port: dist})
+        initial_radius = 1
+        neighbours = self.get_neighbors(initial_radius, i, j, self.vel_arr)
+        while not neighbours:
+            initial_radius += 1
+            neighbours = self.get_neighbors(initial_radius, i, j, self.vel_arr)
+        if initial_radius > 1:
+
+            neigh_lat=[]
+            neigh_lon=[]
+            df1 = pd.DataFrame({'idx': neighbours})
+            for (i, j) in neighbours:
+                neigh_lat.append(self.lat_arr.iloc[i, j])
+                neigh_lon.append(self.lon_arr.iloc[i, j])
+            df1['coords'] = list(zip(neigh_lat, neigh_lon))
+            df1["distance"] = df1["coords"].apply(lambda x: geopy.distance.geodesic(x, (lat_p, lon_p)).km)
+            df1 = df1.sort_values(by='distance')
+
+            idx = df1.iloc[0]['idx']
+            dist = df1.iloc[0]['distance']
+            self.graph[port].update({f'{idx[0]}_{idx[1]}': dist})
+            self.graph[f'{idx[0]}_{idx[1]}'].update({port: dist})
+        else:
+            for (i, j) in neighbours:
+                a = self.all_info_df[self.all_info_df['idx'] == f'{i}_{j}'][['lat','lon']].values[0]
+                dist = geopy.distance.geodesic(a, (lat_p, lon_p)).km
+                self.graph[port].update({f'{i}_{j}': dist})
+                self.graph[f'{i}_{j}'].update({port: dist})
 
     @staticmethod
     def get_neighbors(radius, row_number, column_number, a):

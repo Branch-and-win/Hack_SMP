@@ -17,7 +17,7 @@ edges_info.rename(columns={'point_name':'end_point_name'}, inplace=True)
 edges_info = edges_info.merge(points_info[['start_point_id', 'point_name']], on=['start_point_id'], how='left')
 edges_info.rename(columns={'point_name':'start_point_name'}, inplace=True)
 
-edges_info = edges_info[['start_point_name', 'end_point_name']]
+edges_info = edges_info[['start_point_name', 'end_point_name','length']]
 
 
 

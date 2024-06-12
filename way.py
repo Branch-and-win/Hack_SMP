@@ -51,7 +51,7 @@ if __name__ == '__main__':
     graph_creator.create_graph()
     graph, nodes = graph_creator.graph, graph_creator.nodes
     for row in edges_info.itertuples():
-        print(row.start_point_name,"->",row.end_point_name)
+        print(row.start_point_name, "->", row.end_point_name)
         data['start_point'].append(row.start_point_name)
         data['end_point'].append(row.end_point_name)
         try:
@@ -71,7 +71,8 @@ if __name__ == '__main__':
 
             data['velocity'].append(vel)
             data['duration, nmi'].append(dist)
-
+            if row.length > dist:
+                print(f'Разница в длине: {row.length-dist}')
             print(f'Интегральная тяжесть:{vel}')
             print(f'Мин дистанция:{dist}')
 
