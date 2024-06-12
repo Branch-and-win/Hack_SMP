@@ -1,26 +1,36 @@
 import os
 
-import networkx as nx
 import pandas as pd
 import math
 from typing import Dict, List, Tuple
 from datetime import datetime
 
-from src.entity.edge_t_connection import EdgeTConnection
-from src.entity.port import Port
-from src.entity.vessel import Vessel
-from src.entity.edge import Edge
-from src.entity.departure import Departure
-from src.entity.location import Location
-from src.graph.base_graph import BaseGraph
+from src.smp_model.entity.edge_t_connection import EdgeTConnection
+from src.smp_model.entity.port import Port
+from src.smp_model.entity.vessel import Vessel
+from src.smp_model.entity.edge import Edge
+from src.smp_model.entity.departure import Departure
+from src.smp_model.entity.location import Location
+from src.smp_model.graph.base_graph import BaseGraph
+from src.smp_model.model_config import ModelConfig
 
 
 class ModelInput:
-    def __init__(self, input_folder: str):
-        self.hours_in_interval: int = 1
-        self.hours_in_horizon: int = 300
-        self.start_date: datetime = datetime(2022, 2, 27)
-        self.input_folder: str = input_folder
+    def __init__(
+            self,
+            input_folder_path: str,
+            output_folder_path: str,
+
+            model_config: ModelConfig
+    ):
+        print('Подготовка входных данных модели')
+        self.input_folder_path: str = input_folder_path
+        self.output_folder_path: str = output_folder_path
+        self.config: ModelConfig = model_config
+
+        # self.hours_in_interval: int = hours_in_interval
+        # self.hours_in_horizon: int = hours_in_horizon
+        # self.start_date: datetime = start_date
 
         self.main_graph = BaseGraph()
 
@@ -59,13 +69,13 @@ class ModelInput:
                     p_from.add_min_dist(p_to, 300)
     
     def generate_time(self) -> List[int]:
-        return list(range(math.ceil(self.hours_in_horizon / self.hours_in_interval)))
+        return list(range(math.ceil(self.config.planning_hours / self.config.hours_in_interval)))
     
     def date_to_time(self, date: datetime) -> int:
-        return math.ceil((date - self.start_date).days * 24 / self.hours_in_interval)
+        return math.ceil((date - self.config.start_date).days * 24 / self.config.hours_in_interval)
 
     def read_ports_xlsx(self) -> None:
-        port_data = pd.read_excel(os.path.join(self.input_folder, 'model_data.xlsx'), sheet_name='points')
+        port_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='points')
         for _, row in port_data.iterrows():
             port = Port(
                 id=row['point_id'],
@@ -78,8 +88,11 @@ class ModelInput:
         return 
     
     def read_vessels_xlsx(self) -> None:
-        vessel_data = pd.read_excel(os.path.join(self.input_folder, 'model_data.xlsx'), sheet_name='vessels')
-        vessel_data['date_start'] = pd.to_datetime(vessel_data['date_start'])
+        vessel_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='vessels')
+        vessel_data = vessel_data[
+            (vessel_data['date_start'] <= self.config.end_date)
+            & (vessel_data['date_start'] >= self.config.start_date)
+        ]
         for row in vessel_data.itertuples():
             _, best_routes = self.main_graph.k_shortest_paths(
                 self.ports_dict[row.start_point_id],
@@ -107,7 +120,7 @@ class ModelInput:
         return 
     
     def read_icebreakers_xlsx(self) -> None:
-        icebreaker_data = pd.read_excel(os.path.join(self.input_folder, 'model_data.xlsx'), sheet_name='icebreakers')
+        icebreaker_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='icebreakers')
         for _, row in icebreaker_data.iterrows():
             icebreaker = Vessel(
                 id=row['vessel_id'], 
@@ -124,7 +137,7 @@ class ModelInput:
         return 
     
     def read_edges_xlsx(self) -> None:
-        edge_data = pd.read_excel(os.path.join(self.input_folder, 'model_data.xlsx'), sheet_name='edges')
+        edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='edges')
         for row in edge_data.itertuples():
             edge_1 = Edge(
                 port_from=self.ports_dict[row.start_point_id],
@@ -178,7 +191,8 @@ class ModelInput:
             if integer_integral_ice >= 15:
                 return [(integer_integral_ice, True, True), (vessel.max_speed * 0.6, False, True)]
             if integer_integral_ice >= 10:
-                return [(integer_integral_ice * 0.8, True, True), (vessel.max_speed * 0.15, False, True)]  
+                return [(integer_integral_ice * 0.8, True, True), (vessel.max_speed * 0.15, False, True)]
+        return []
     
     # Требует умной фильтрации
     def generate_departures(self):

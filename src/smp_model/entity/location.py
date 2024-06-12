@@ -1,7 +1,6 @@
-from src.entity.departure import Departure
-from src.entity.port import Port
-from src.entity.vessel import Vessel
-from src.graph.base_graph import BaseGraph
+from src.smp_model.entity.departure import Departure
+from src.smp_model.entity.port import Port
+from src.smp_model.entity.vessel import Vessel
 
 
 class Location:

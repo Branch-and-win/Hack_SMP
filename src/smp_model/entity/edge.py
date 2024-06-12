@@ -1,4 +1,4 @@
-from src.entity.port import Port
+from src.smp_model.entity.port import Port
 
 
 class Edge:

@@ -1,7 +1,7 @@
 from typing import List
 
-from src.entity.edge import Edge
-from src.entity.vessel import Vessel
+from src.smp_model.entity.edge import Edge
+from src.smp_model.entity.vessel import Vessel
 
 
 class EdgeTConnection:

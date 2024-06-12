@@ -1,9 +1,8 @@
-from pyomo.environ import Var, Binary, Objective, quicksum, minimize, SolverFactory, ConcreteModel, value
-import pandas as pd
+from pyomo.environ import Var, Binary, Objective, quicksum, minimize, SolverFactory, ConcreteModel
 
 from src.smp_model.input import ModelInput
 from src.smp_model.output import ModelOutput
-from src.utils import constraints_from_dict
+from src.smp_model.utils import constraints_from_dict
 
 
 class Model:
@@ -19,7 +18,7 @@ class Model:
 		self.create_model()
 
 	def create_model(self):
-		print('Preparing model')
+		print('Подготовка модели')
 
 		## Переменные
 		# Индикатор отправления судна v по ребру e в момент времени t
@@ -111,6 +110,7 @@ class Model:
 		return
 
 	def solve_model(self):
+		print('Запуск оптимизации')
 		
 		# Solver = SolverFactory('cbc')
 
