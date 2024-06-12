@@ -88,6 +88,10 @@ class Graph:
         initial_radius = 1
         neighbours = self.get_neighbors(initial_radius, i, j, self.vel_arr)
         while not neighbours:
+            if initial_radius > 12:
+                neighbours = []
+                initial_radius=1
+                break
             initial_radius += 1
             neighbours = self.get_neighbors(initial_radius, i, j, self.vel_arr)
         if initial_radius > 1:
