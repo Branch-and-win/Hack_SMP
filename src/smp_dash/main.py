@@ -29,7 +29,7 @@ class ModelDash:
         """
         print('Подготовка картинок с результатами')
 
-        self.result_departures_df.sort_values(by=['time_from'], inplace=True)
+        self.result_departures_df.sort_values(by=['time_from_dt'], inplace=True)
 
         icebreakers_departures = self.result_departures_df[self.result_departures_df['is_icebreaker'] == True]
         icebreakers_departures_dict = icebreakers_departures.groupby(['time_from_dt', 'port_from', 'port_to']).agg(
