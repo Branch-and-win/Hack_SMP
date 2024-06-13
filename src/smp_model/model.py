@@ -98,7 +98,7 @@ class Model:
 				quicksum(
 					(0 if l.vessel.is_icebreaker else ((l.time - l.vessel.time_start) * self.model.stop_place[l]))
 					+ (0 if l.vessel.is_icebreaker else (l.min_time_to_end_port * self.model.stop_place[l]) * 5)
-					- self.model.stop_place[l] * (l.port == l.vessel.port_end) * 300
+					- self.model.stop_place[l] * int(l.port == l.vessel.port_end) * 300
 					for l in self.input.locations
 				)
 				+ quicksum(
@@ -123,7 +123,7 @@ class Model:
 		#solver.options['time_limit'] = 900
 		#solver.options['mip_rel_gap'] = 0.02
 
-		solver = SolverFactory('gurobi')
+		solver = SolverFactory('appsi_highs')
 		solver.options['TimeLimit'] = 900
 
 		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})

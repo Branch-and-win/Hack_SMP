@@ -104,6 +104,11 @@ class ModelInput:
                 for best_route in best_routes
                 for port_start, port_end in zip(best_route[:-1], best_route[1:])
             }
+            possible_ports = set()
+            for best_route in best_routes:
+                for port in best_route:
+                    possible_ports.add(port)
+
             vessel = Vessel(
                 id=row.vessel_id,
                 name=row.vessel_name,
@@ -114,6 +119,7 @@ class ModelInput:
                 max_speed=row.max_speed,
                 class_type=row.class_type,
                 possible_edges=possible_edges,
+                possible_ports=possible_ports,
             )
             self.vessels.append(vessel)
             self.vessels_dict[vessel.id] = vessel
@@ -210,8 +216,14 @@ class ModelInput:
                                 speed=speed,
                                 is_icebreaker_assistance=is_icebreaker_assistance
                             )
-                            if (t + departure.duration in self.times
-                            and (v.is_icebreaker or e in v.possible_edges)):
+                            if (
+                                t + departure.duration in self.times
+                                and (
+                                    v.is_icebreaker
+                                    or e in v.possible_edges
+                                    or (e.is_fict and e.port_from in v.possible_ports)
+                                )
+                            ):
                                 self.departures.append(departure)
                                 self.departures_dict[v, e, t, is_icebreaker_assistance] = departure
                                 allowed_vessels.append(v)
