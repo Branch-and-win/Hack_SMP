@@ -30,6 +30,10 @@ class ModelOutput:
                 'is_icebreaker',
                 'time_from_dt',
                 'time_to_dt',
+                'class_type',
+                'integer_ice',
+                'speed',
+                'max_speed'
             ]
         )
         self.result_locations_df = pd.DataFrame(
@@ -64,6 +68,10 @@ class ModelOutput:
                 d.vessel.is_icebreaker,
                 self.input.config.start_date + timedelta(hours=d.time),
                 self.input.config.start_date + timedelta(hours=d.time + d.duration),
+                 d.vessel.class_type,
+                round(d.edge.avg_norm, 0),
+                d.speed,
+                d.vessel.max_speed
             ]
             for d in self.input.departures
             if value(self.model.departure[d]) > 0.5
