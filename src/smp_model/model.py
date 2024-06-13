@@ -26,6 +26,11 @@ class Model:
 
 		# Индикатор конца пути для судна v в порту p в момент времени t
 		self.model.stop_place = Var(self.input.locations, domain=Binary)
+		for l in self.input.locations:
+			if l.time == l.vessel.time_start and l.vessel.port_start == l.port:
+				self.model.stop_place[l] = 1
+			else:
+				self.model.stop_place[l] = 0
 
 		## Ограничения
 
@@ -123,11 +128,15 @@ class Model:
 		#solver.options['time_limit'] = 900
 		#solver.options['mip_rel_gap'] = 0.02
 
-		solver = SolverFactory('appsi_highs')
-		solver.options['TimeLimit'] = 900
-
+		solver_name = 'appsi_highs'
+		solver = SolverFactory(solver_name)
 		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
-		solve_results = solver.solve(self.model, tee=True)
+		if solver_name == 'appsi_highs':
+			solver.options['TimeLimit'] = 900
+			solve_results = solver.solve(self.model, tee=True)
+		else:
+			solver.options['TimeLimit'] = 900
+			solve_results = solver.solve(self.model, tee=True, warmstart=True)
 
 		return       
 
