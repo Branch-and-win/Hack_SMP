@@ -14,7 +14,7 @@ class Departure:
         self.possible_icebreaker_departures = []
 
     def __repr__(self) -> str:
-        return f"D({self.vessel, self.edge, self.time})"
+        return f"D({self.vessel, self.edge, self.time, self.is_icebreaker_assistance})"
     
     def add_possible_icebreaker(self, departure):
         self.possible_icebreaker_departures.append(departure)
