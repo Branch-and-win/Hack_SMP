@@ -1,10 +1,23 @@
-from typing import List
+from typing import List, Set
 
 from src.smp_model.entity.edge import Edge
+from src.smp_model.entity.port import Port
 
 
 class Vessel:
-    def __init__(self, id, name, is_icebreaker, port_start, port_end, time_start, max_speed, class_type, possible_edges=None) -> None:
+    def __init__(
+            self,
+            id,
+            name,
+            is_icebreaker,
+            port_start,
+            port_end,
+            time_start,
+            max_speed,
+            class_type,
+            possible_edges=None,
+            possible_ports=None,
+    ) -> None:
         self.id = id
         self.name = name
         self.is_icebreaker = is_icebreaker
@@ -17,6 +30,9 @@ class Vessel:
         self.possible_edges: List[Edge] = []
         if possible_edges is not None:
             self.possible_edges = possible_edges
+        self.possible_ports: Set[Port] = set()
+        if possible_ports is not None:
+            self.possible_ports = possible_ports
         self.locations_by_vessel = []
 
     def add_location(self, location):
