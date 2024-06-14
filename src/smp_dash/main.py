@@ -269,14 +269,21 @@ class ModelDash:
         """Метод вывода статистика результатов в разрезе корабля"""
         statistic_ship = pd.DataFrame()
 
-        # Среднее время движения
         statistic_ship['vessel_name'] = df.sort_values(by='vessel_name')['vessel_name'].unique()
         statistic_ship['vessel_id'] = df.sort_values(by='vessel_name')['vessel_id'].unique()
-
-        statistic_ship['Среднее время движения'] = df.groupby(['vessel_name'])['duration'].mean().to_numpy()
-        statistic_ship['Общее время движения'] = df.groupby(['vessel_name'])['duration'].sum().to_numpy()
-        statistic_ship['Максимальное время движения корабля'] = df.groupby(['vessel_name'])['duration'].max().to_numpy()
-        statistic_ship['Минимальное время движения корабля'] = df.groupby(['vessel_name'])['duration'].min().to_numpy()
+        # Среднее время движения
+        df1 = df.groupby(['vessel_name'])['duration'].mean().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Среднее время движения'] = df1[df1['vessel_name'] == v]['duration'].iloc[0]
+        df1 = df.groupby(['vessel_name'])['duration'].sum().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Общее время движения'] = df1[df1['vessel_name'] == v]['duration'].iloc[0]
+        df1 = df.groupby(['vessel_name'])['duration'].max().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Максимальное время движения корабля'] = df1[df1['vessel_name'] == v]['duration'].iloc[0]
+        df1 = df.groupby(['vessel_name'])['duration'].min().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Минимальное время движения корабля'] = df1[df1['vessel_name'] == v]['duration'].iloc[0]
 
         df1 = df[
             df['need_assistance'] == 1].groupby(['vessel_name'])['duration'].mean().reset_index()
@@ -300,8 +307,21 @@ class ModelDash:
                 df1[df1['vessel_name'] == v]['port_to'].iloc[0]
 
         statistic_ship['Максимальная скорость'] = df.groupby(['vessel_name'])['max_speed'].max().to_numpy()
-        statistic_ship['Средняя скорость'] = df.groupby(['vessel_name'])['speed'].mean().to_numpy()
-        statistic_ship['Средняя интегральная тяжесть льда'] = df.groupby(['vessel_name'])['integer_ice'].mean().to_numpy()
+
+        df1 = df.groupby(['vessel_name'])['max_speed'].max().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Максимальная скорость'] = \
+            df1[df1['vessel_name'] == v]['max_speed'].iloc[0]
+
+        df1 = df.groupby(['vessel_name'])['speed'].mean().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Средняя скорость'] = \
+                df1[df1['vessel_name'] == v]['speed'].iloc[0]
+
+        df1 = df.groupby(['vessel_name'])['integer_ice'].mean().reset_index()
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Средняя интегральная тяжесть льда'] = \
+                df1[df1['vessel_name'] == v]['integer_ice'].iloc[0]
 
         statistic_ship = statistic_ship.merge(df[['vessel_name', 'is_icebreaker']], on='vessel_name', how='left')
         statistic_ship = statistic_ship.drop_duplicates(subset='vessel_name')
@@ -415,13 +435,19 @@ class ModelDash:
         """Метод сбора статистик по результатам расчета"""
         summary_statistic_ship, summary_statistic_ice_breaker = ModelDash.get_summary_statistic(df)
         summary_df = pd.DataFrame(index=['Корабли', 'Ледоколы'], columns=summary_statistic_ice_breaker.keys())
-        summary_df.loc['Корабли', :] = list(summary_statistic_ship.values())
-        summary_df.loc['Ледоколы', :] = list(summary_statistic_ice_breaker.values())
+        for col in summary_df.columns:
+
+            summary_df.loc['Корабли', col] = summary_statistic_ship[col]
+            summary_df.loc['Ледоколы', col] = summary_statistic_ice_breaker[col]
         summary_df['Среднее число пройденных промежуточных точек'] = summary_df[
             'Среднее число пройденных промежуточных точек'].astype('int')
         partial_statistic_df = ModelDash.get_partial_statistic(df)
-
+        summary_df.index.name = 'Тип судна'
         with pd.ExcelWriter(os.path.join(output_path, 'statistics.xlsx')) as writer:
-            summary_df.to_excel(writer, sheet_name='Общая статистика',index=False)
+            summary_df.to_excel(writer, sheet_name='Общая статистика')
             partial_statistic_df.to_excel(writer, sheet_name='Частная статистика',index=False)
 
+
+if __name__ == '__main__':
+    df = pd.read_excel(r'D:\PycharmProjects\SMP\data\departures.xlsx')
+    ModelDash.collect_kpi(r'D:\PycharmProjects\SMP\data\scenarios\base\output', df)
