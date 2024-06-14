@@ -156,6 +156,9 @@ class Scenario:
                 self.vessels_df.at[row.Index, 'start_point_id'] = start_point_id
                 self.vessels_df.at[row.Index, 'start_point_name'] = ports_dict[start_point_id]['point_name']
                 self.vessels_df.at[row.Index, 'date_start'] = start_date
+            if row.date_start < self.config.start_date_dt:
+                self.vessels_df.at[row.Index, 'date_start'] = self.config.start_date_dt
+
         # Удаление выполненных заявок
         self.vessels_df = self.vessels_df[~(self.vessels_df['start_point_id'] == self.vessels_df['end_point_id'])]
 
@@ -167,6 +170,8 @@ class Scenario:
                 self.icebreakers_df.at[row.Index, 'start_point_id'] = start_point_id
                 self.icebreakers_df.at[row.Index, 'start_point_name'] = ports_dict[start_point_id]['point_name']
                 self.icebreakers_df.at[row.Index, 'date_start'] = start_date
+            if row.date_start < self.config.start_date_dt:
+                self.icebreakers_df.at[row.Index, 'date_start'] = self.config.start_date_dt
 
     def run_optimization(self):
         """
