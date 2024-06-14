@@ -14,7 +14,7 @@ from src.smp_model.entity.departure import Departure
 from src.smp_model.entity.location import Location
 from src.smp_model.graph.base_graph import BaseGraph
 from src.smp_model.model_config import ModelConfig
-
+from src.smp_model.utils import choose_week_for_calc
 
 class ModelInput:
     def __init__(
@@ -153,18 +153,30 @@ class ModelInput:
     
     def read_edges_xlsx(self) -> None:
         edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='edges')
+        acc_vel_dict, acc_len_dict = {}, {}
+        if os.path.isfile(os.path.join(self.input_folder_path, 'velocity_env.xlsx')):
+            velocity_book = pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx'))
+            sheets = velocity_book.sheet_names
+            date = choose_week_for_calc(self.config.start_date, sheets)
+            vel_edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'velocity_env.xlsx'), sheet_name=f'{date}')
+            acc_vel_dict = dict(
+                zip(list(zip(vel_edge_data['start_point_id'], vel_edge_data['end_point_id'])), vel_edge_data['avg_norm'])
+            )
+            acc_len_dict = dict(
+                zip(list(zip(vel_edge_data['start_point_id'], vel_edge_data['end_point_id'])),vel_edge_data['length'])
+            )
         for row in edge_data.itertuples():
             edge_1 = Edge(
                 port_from=self.ports_dict[row.start_point_id],
                 port_to=self.ports_dict[row.end_point_id],
-                distance=row.length,
-                avg_norm=row.avg_norm
+                distance=acc_len_dict.get((row.start_point_id, row.end_point_id), 0),
+                avg_norm=acc_vel_dict.get((row.start_point_id, row.end_point_id), 0)
             )
             edge_2 = Edge(
                 port_from=self.ports_dict[row.end_point_id],
                 port_to=self.ports_dict[row.start_point_id],
-                distance=row.length,
-                avg_norm=row.avg_norm
+                distance=acc_len_dict.get((row.start_point_id, row.end_point_id), 0),
+                avg_norm=acc_vel_dict.get((row.start_point_id, row.end_point_id), 0)
             )
             self.edges.append(edge_1)
             self.edges.append(edge_2)

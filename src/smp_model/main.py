@@ -5,7 +5,7 @@ from src.smp_model.input import ModelInput
 from src.smp_model.model import Model
 from src.smp_model.model_config import ModelConfig
 from src.smp_scenario.scenario_config import ScenarioConfig
-
+from src.smp_model.graph.length_velocity_calc import dump_velocity_length
 
 def run_model(
         input_folder_path: str,
