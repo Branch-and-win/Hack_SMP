@@ -217,7 +217,8 @@ class ModelInput:
                 allowed_vessels = []
                 for v in self.vessels:
                     if (
-                        t < v.time_start + self.min_distance_from_start[v, e.port_from] - 1
+                        t < v.time_start
+                        # t < v.time_start + self.min_distance_from_start[v, e.port_from] - 1
                     ):
                         continue
                     for (speed, is_icebreaker_assistance, is_possible) in ModelInput.calculate_ice_depending_values(v, e):
@@ -248,14 +249,14 @@ class ModelInput:
     def generate_locations(self):
         for v in self.vessels:
             for p in self.ports:
-                min_time_to_current_port = self.main_graph.k_shortest_paths(v.port_start, p)[0][0] / v.max_speed
                 if v.port_end:
                     min_time_to_port_end = self.main_graph.k_shortest_paths(p, v.port_end)[0][0] / v.max_speed
                 else:
                     min_time_to_port_end = 0
                 for t in self.times:
                     if (
-                        t < v.time_start + self.min_distance_from_start[v, p] - 1
+                        t < v.time_start
+                        # t < v.time_start + self.min_distance_from_start[v, p] - 1
                     ):
                         continue
                     # TODO: Фильтр убивает
