@@ -105,6 +105,13 @@ class Scenario:
         """
         self.fill_input_data_from_scenario_files(other_scenario)
         self.save_input_objects_to_folder()
+        self.copy_velocity_env(other_scenario)
+
+    def copy_velocity_env(self, other_scenario: 'Scenario') -> None:
+        shutil.copyfile(
+            os.path.join(other_scenario.input_folder_path, 'velocity_env.xlsx'),
+            os.path.join(self.input_folder_path, 'velocity_env.xlsx')
+        )
 
     def create_input_from_prev_scenario(self, prev_scenario: 'Scenario'):
         """
@@ -113,6 +120,7 @@ class Scenario:
         self.fill_input_data_from_scenario_files(prev_scenario)
         self.update_input_from_output(prev_scenario)
         self.save_input_objects_to_folder()
+        self.copy_velocity_env(prev_scenario)
 
     def update_input_from_output(self, prev_scenario: 'Scenario'):
         """

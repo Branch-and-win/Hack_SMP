@@ -26,3 +26,11 @@ class ModelConfig:
         with open(json_file_path) as f:
             config = cls.create_from_dict(json.load(f))
         return config
+
+    def __str__(self):
+        return (
+            f'Конфиг запуска: Дата начала - {self.start_date};'
+            f' Количество часов в одном интервале - {self.hours_in_interval};'
+            f' Количество часов планирования - {self.hours_in_horizon};'
+            f' Количество часов сверх планирования (cross) - {self.hours_in_cross};'
+        )

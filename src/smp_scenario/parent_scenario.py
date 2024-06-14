@@ -49,8 +49,37 @@ class ParentScenario(Scenario):
         Заполнение списка последовательных дочерних сценариев
         """
         self.clear_or_create_folder(self.child_scenarios_folder_path)
+        if os.path.isfile(os.path.join(self.input_folder_path, 'velocity_env.xlsx')):
+            velocity_book = pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx'))
+            velocity_dates = velocity_book.sheet_names
+            velocity_dates = [datetime.strptime(d, '%d-%m-%Y') for d in velocity_dates]
+            velocity_dates_flt = [d for d in velocity_dates if self.config.start_date_dt <= d <= self.config.end_date_dt]
+            min_date_with_velocity = min(velocity_dates_flt)
+            first_planning_date = max(self.config.start_date_dt, min_date_with_velocity - timedelta(days=self.config.duration_days))
+        else:
+            min_date_with_velocity = self.config.start_date_dt
+            first_planning_date = self.config.start_date_dt
+        # Если есть дни до даты с известной тяжестью льда
+        if first_planning_date != min_date_with_velocity:
+            days_from_start = int((first_planning_date - self.config.start_date_dt).days)
+            child_scenario_name = f'{self.name}_{days_from_start}'
+            child_scenario_folder_path = os.path.join(self.child_scenarios_folder_path, child_scenario_name)
+            self.clear_or_create_folder(child_scenario_folder_path)
+
+            child_config = ScenarioConfig(
+                start_date=datetime.strftime(self.config.start_date_dt + timedelta(days=days_from_start), '%d-%m-%Y'),
+                duration_days=int((min_date_with_velocity - first_planning_date).days),
+                interval_hours=self.config.interval_hours,
+                cross_days=self.config.cross_days,
+            )
+            scenario = Scenario(
+                name=child_scenario_name,
+                scenario_folder_path=child_scenario_folder_path,
+                config=child_config,
+            )
+            self.child_scenario_chain.append(scenario)
         for days_from_start in range(
-                0, int((self.config.end_date_dt - self.config.start_date_dt).days),
+                int((min_date_with_velocity - self.config.start_date_dt).days), int((self.config.end_date_dt - self.config.start_date_dt).days),
                 self.config.duration_days):
 
             child_scenario_name = f'{self.name}_{days_from_start}'

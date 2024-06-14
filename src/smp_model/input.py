@@ -158,6 +158,7 @@ class ModelInput:
             velocity_book = pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx'))
             sheets = velocity_book.sheet_names
             date = choose_week_for_calc(self.config.start_date, sheets)
+            print(f'Для сценария с датой начала {self.config.start_date} используются данные по интегральности за {date}')
             vel_edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'velocity_env.xlsx'), sheet_name=f'{date}')
             acc_vel_dict = dict(
                 zip(list(zip(vel_edge_data['start_point_id'], vel_edge_data['end_point_id'])), vel_edge_data['avg_norm'])

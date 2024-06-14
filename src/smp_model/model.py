@@ -117,6 +117,7 @@ class Model:
 
 	def solve_model(self):
 		print('Запуск оптимизации')
+		print(self.input.config)
 		
 		# Solver = SolverFactory('cbc')
 
