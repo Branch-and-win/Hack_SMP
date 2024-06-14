@@ -17,7 +17,6 @@ def run_model(
         output_folder_path=output_folder_path,
         model_config=model_config,
     )
-    dump_velocity_length(input)
     model = Model(input)
     model.solve_model()
     model.output.create_output()
