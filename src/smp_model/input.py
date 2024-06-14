@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 import pandas as pd
 import math
@@ -52,10 +53,13 @@ class ModelInput:
         self.locations: List[Location] = []
         self.locations_dict = {}
 
+        self.min_distance_from_start: Dict[Tuple[Vessel, Port], float] = {}
+
         self.read_ports_xlsx()
         self.read_edges_xlsx()
         self.read_vessels_xlsx()
         self.read_icebreakers_xlsx()
+        self.calculate_min_distance_from_start()
         self.generate_departures()
         self.generate_locations()
         self.generate_links()
@@ -67,7 +71,12 @@ class ModelInput:
                     p_from.add_min_dist(p_to, round(self.edges_dict[p_from.id, p_to.id].distance / 15, 0) * 2)
                 else:
                     p_from.add_min_dist(p_to, 300)
-    
+
+    def calculate_min_distance_from_start(self):
+        for p in self.ports:
+            for v in self.vessels:
+                self.min_distance_from_start[v, p] = self.main_graph.k_shortest_paths(v.port_start, p)[0][0] / v.max_speed
+
     def generate_time(self) -> List[int]:
         return list(range(math.ceil(self.config.planning_hours / self.config.hours_in_interval)))
     
@@ -97,7 +106,7 @@ class ModelInput:
             _, best_routes = self.main_graph.k_shortest_paths(
                 self.ports_dict[row.start_point_id],
                 self.ports_dict[row.end_point_id],
-                k=20,
+                k=5,
             )
             possible_edges = {
                 self.edges_dict[port_start.id, port_end.id]
@@ -127,16 +136,16 @@ class ModelInput:
     
     def read_icebreakers_xlsx(self) -> None:
         icebreaker_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='icebreakers')
-        for _, row in icebreaker_data.iterrows():
+        for row in icebreaker_data.itertuples():
             icebreaker = Vessel(
-                id=row['vessel_id'], 
-                name=row['vessel_name'], 
+                id=row.vessel_id,
+                name=row.vessel_name,
                 is_icebreaker=True, 
-                port_start=self.ports_dict[row['start_point_id']], 
+                port_start=self.ports_dict[row.start_point_id],
                 port_end=None,
-                time_start=0, 
-                max_speed=row['max_speed'], 
-                class_type=row['class_type']
+                time_start=self.date_to_time(row.date_start),
+                max_speed=row.max_speed,
+                class_type=row.class_type
             )
             self.vessels.append(icebreaker)
             self.vessels_dict[icebreaker.id] = icebreaker
@@ -207,6 +216,10 @@ class ModelInput:
                 self.edge_t_connections[e, t] = EdgeTConnection(e, t)
                 allowed_vessels = []
                 for v in self.vessels:
+                    if (
+                        t < v.time_start + self.min_distance_from_start[v, e.port_from] - 1
+                    ):
+                        continue
                     for (speed, is_icebreaker_assistance, is_possible) in ModelInput.calculate_ice_depending_values(v, e):
                         if is_possible:
                             departure = Departure(
@@ -241,16 +254,19 @@ class ModelInput:
                 else:
                     min_time_to_port_end = 0
                 for t in self.times:
+                    if (
+                        t < v.time_start + self.min_distance_from_start[v, p] - 1
+                    ):
+                        continue
                     # TODO: Фильтр убивает
-                    if True or v.time_start + min_time_to_current_port <= t:
-                        location = Location(
-                            vessel=v, 
-                            port=p, 
-                            time=t,
-                            min_time_to_port_end=min_time_to_port_end,
-                        )
-                        self.locations.append(location)  
-                        self.locations_dict[v, p, t] = location
+                    location = Location(
+                        vessel=v,
+                        port=p,
+                        time=t,
+                        min_time_to_port_end=min_time_to_port_end,
+                    )
+                    self.locations.append(location)
+                    self.locations_dict[v, p, t] = location
         return
 
     def generate_links(self):

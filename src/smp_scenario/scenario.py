@@ -191,8 +191,13 @@ class Scenario:
         dash.plot_results()
 
 if __name__ == '__main__':
-    base_scenario = Scenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base'))
-    base_scenario.run_optimization()
+    base_scenario1 = Scenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent_5', 'child_scenarios', 'base_14'))
+    base_scenario2 = Scenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent_5', 'child_scenarios', 'base_21'))
+    # base_scenario2.update_input_from_output(base_scenario1)
+
+    a=1
+    base_scenario1.run_optimization()
+    base_scenario1.create_dash([base_scenario2.config.start_date_dt])
 
     # scenario_name = 'test_1'
     # scenario_folder_path = os.path.join('.', 'data', 'scenarios', scenario_name)
