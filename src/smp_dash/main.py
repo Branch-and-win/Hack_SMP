@@ -1,7 +1,6 @@
 import os
 from datetime import datetime, timedelta
 from typing import List
-
 import plotly.express as px
 import pandas as pd
 
@@ -23,6 +22,7 @@ class ModelDash:
             self.vessels_df = pd.read_excel(reader, sheet_name='vessels')
         with pd.ExcelFile(os.path.join(output_folder_path, 'departures.xlsx')) as reader:
             self.result_departures_df = pd.read_excel(reader, sheet_name='Sheet1')
+            self.collect_kpi(output_folder_path, self.result_departures_df)
 
         self.ports_dict = self.ports_df.set_index('point_id').to_dict(orient='index')
 
@@ -38,7 +38,8 @@ class ModelDash:
         icebreakers_departures_dict = icebreakers_departures.groupby(['time_from_dt', 'port_from', 'port_to']).agg(
             {'vessel_name': lambda x: list(x)}).to_dict(orient='index')
         self.result_departures_df['edge_type'] = self.result_departures_df.apply(
-            lambda x: icebreakers_departures_dict[(x['time_from_dt'], x['port_from'], x['port_to'])]['vessel_name'][0] if (
+            lambda x: icebreakers_departures_dict[(x['time_from_dt'], x['port_from'], x['port_to'])]['vessel_name'][
+                0] if (
                     x['need_assistance'] is True or x['is_icebreaker'] is True) else '', axis=1)
 
         for i, row in self.result_departures_df.iterrows():
@@ -48,7 +49,8 @@ class ModelDash:
                 self.result_departures_df.at[i, 'edge_type'] = row['vessel_name']
             elif row['need_assistance']:
                 self.result_departures_df.at[i, 'edge_type'] = \
-                icebreakers_departures_dict[(row['time_from_dt'], row['port_from'], row['port_to'])]['vessel_name'][0]
+                    icebreakers_departures_dict[(row['time_from_dt'], row['port_from'], row['port_to'])]['vessel_name'][
+                        0]
             else:
                 self.result_departures_df.at[i, 'edge_type'] = 'Перемещение судна'
 
@@ -56,7 +58,7 @@ class ModelDash:
         vessel_ends_df = self.result_departures_df[
             (self.result_departures_df['port_to'] == self.result_departures_df['target_port'])
             & ~(self.result_departures_df['is_icebreaker'] == True)
-        ]
+            ]
         vessel_ends_df['edge_type'] = 'Порт назначения'
         vessel_ends_df['port_from'] = vessel_ends_df['port_to']
         vessel_ends_df['time_from_dt'] = vessel_ends_df['time_to_dt']
@@ -144,7 +146,8 @@ class ModelDash:
         all_edges = []
         for id, edge in enumerate(self.edges_df.itertuples()):
             all_edges += [
-                (id, self.ports_dict[edge.start_point_id]['longitude'], self.ports_dict[edge.start_point_id]['latitude']),
+                (id, self.ports_dict[edge.start_point_id]['longitude'],
+                 self.ports_dict[edge.start_point_id]['latitude']),
                 (id, self.ports_dict[edge.end_point_id]['longitude'], self.ports_dict[edge.end_point_id]['latitude']),
             ]
 
@@ -168,12 +171,14 @@ class ModelDash:
             vessel_route_df = self.result_departures_df[self.result_departures_df['vessel_name'] == vessel_name]
             vessel_route_port_list = []
             for i, row in enumerate(vessel_route_df.itertuples()):
-                port_from_lon, port_from_lat = self.ports_dict[row.port_from_id]['longitude'], self.ports_dict[row.port_from_id]['latitude']
+                port_from_lon, port_from_lat = self.ports_dict[row.port_from_id]['longitude'], \
+                self.ports_dict[row.port_from_id]['latitude']
                 vessel_route_port_list.append(
                     (port_from_lon, port_from_lat)
                 )
                 if i == len(vessel_route_df) - 1:
-                    port_to_lon, port_to_lat = self.ports_dict[row.port_to_id]['longitude'], self.ports_dict[row.port_to_id]['latitude']
+                    port_to_lon, port_to_lat = self.ports_dict[row.port_to_id]['longitude'], \
+                    self.ports_dict[row.port_to_id]['latitude']
                     vessel_route_port_list.append(
                         (port_to_lon, port_to_lat)
                     )
@@ -238,8 +243,8 @@ class ModelDash:
             'Порт назначения': 'Black',
         }
         vessel_order_list = (
-            self.vessels_df.sort_values(by=['date_start'], ascending=False)['vessel_name'].unique().tolist()
-            + self.icebreakers_df.sort_values(by=['vessel_id'], ascending=False)['vessel_name'].unique().tolist()
+                self.vessels_df.sort_values(by=['date_start'], ascending=False)['vessel_name'].unique().tolist()
+                + self.icebreakers_df.sort_values(by=['vessel_id'], ascending=False)['vessel_name'].unique().tolist()
         )
         category_orders = {
             'vessel_name': vessel_order_list
@@ -258,3 +263,165 @@ class ModelDash:
         fig1.show()
 
         fig2.show()
+
+    @staticmethod
+    def get_partial_statistic(df: pd.DataFrame):
+        """Метод вывода статистика результатов в разрезе корабля"""
+        statistic_ship = pd.DataFrame()
+
+        # Среднее время движения
+        statistic_ship['vessel_name'] = df.sort_values(by='vessel_name')['vessel_name'].unique()
+        statistic_ship['vessel_id'] = df.sort_values(by='vessel_name')['vessel_id'].unique()
+
+        statistic_ship['Среднее время движения'] = df.groupby(['vessel_name'])['duration'].mean().to_numpy()
+        statistic_ship['Общее время движения'] = df.groupby(['vessel_name'])['duration'].sum().to_numpy()
+        statistic_ship['Максимальное время движения корабля'] = df.groupby(['vessel_name'])['duration'].max().to_numpy()
+        statistic_ship['Минимальное время движения корабля'] = df.groupby(['vessel_name'])['duration'].min().to_numpy()
+
+        df1 = df[
+            df['need_assistance'] == 1].groupby(['vessel_name'])['duration'].mean().reset_index()
+        statistic_ship['Среднее время движения под проводкой'] = 0
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Среднее время движения под проводкой'] = \
+            df1[df1['vessel_name'] == v]['duration'].iloc[0]
+
+        df1 = df[
+            df['need_assistance'] == 1].groupby(['vessel_name'])['duration'].sum().reset_index()
+        statistic_ship['Суммарное время движения под проводкой'] = 0
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Суммарное время движения под проводкой'] = \
+            df1[df1['vessel_name'] == v]['duration'].iloc[0]
+
+        df1 = df[
+            df['target_port'] != df['port_to']].groupby(['vessel_name'])['port_to'].count().reset_index()
+        statistic_ship['Число пройденных промежуточных точек'] = 0
+        for v in df1['vessel_name'].unique():
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Число пройденных промежуточных точек'] = \
+                df1[df1['vessel_name'] == v]['port_to'].iloc[0]
+
+        statistic_ship['Максимальная скорость'] = df.groupby(['vessel_name'])['max_speed'].max().to_numpy()
+        statistic_ship['Средняя скорость'] = df.groupby(['vessel_name'])['speed'].mean().to_numpy()
+        statistic_ship['Средняя интегральная тяжесть льда'] = df.groupby(['vessel_name'])['integer_ice'].mean().to_numpy()
+
+        statistic_ship = statistic_ship.merge(df[['vessel_name', 'is_icebreaker']], on='vessel_name', how='left')
+        statistic_ship = statistic_ship.drop_duplicates(subset='vessel_name')
+        return statistic_ship
+
+    @staticmethod
+    def get_summary_statistic(df: pd.DataFrame):
+        """Метод вывода общей статистика результатов расчета"""
+        summary_statistic_ship = {}
+        summary_statistic_ice_breaker = {}
+
+        # собираем статистику по кораблям
+        ships_df = df[df['is_icebreaker'] == False]
+
+        # Среднее время движения корабля
+        mean_time_ship = ships_df['duration'].mean()
+        summary_statistic_ship['Среднее время движения'] = mean_time_ship
+
+        # общее время движения по всем кораблям
+        sum_time_ship = ships_df['duration'].sum()
+        summary_statistic_ship['Общее время движения'] = sum_time_ship
+
+        # максимальное время движения корабля
+        max_time_ship = ships_df['duration'].max()
+        summary_statistic_ship['Максимальное время движения'] = max_time_ship
+
+        # минимальное время движения по всем кораблям
+        min_time_ship = ships_df['duration'].min()
+        summary_statistic_ship['Минимальное время движения'] = min_time_ship
+
+        # среднее время движения по всем кораблям под проводкой
+        mean_time_ship_break = ships_df[ships_df['need_assistance'] == 1]['duration'].mean()
+        summary_statistic_ship['Среднее время движения под проводкой'] = mean_time_ship_break
+
+        # суммарное время движения по всем кораблям под проводкой
+        sum_time_ship_break = ships_df[ships_df['need_assistance'] == 1]['duration'].sum()
+        summary_statistic_ship['Суммарное время движения под проводкой'] = sum_time_ship_break
+
+        # Среднее число пройденных промежуточных точек
+        mean_intermediate_points_ships = ships_df[
+            ships_df['target_port'] != ships_df['port_to']].groupby(['vessel_name'])['port_to'].count().mean()
+        summary_statistic_ship['Среднее число пройденных промежуточных точек'] = mean_intermediate_points_ships
+
+        # Суммарное число пройденных промежуточных точек
+        sum_intermediate_points_ships = ships_df[
+            ships_df['target_port'] != ships_df['port_to']].groupby(['vessel_name'])['port_to'].count().sum()
+        summary_statistic_ship['Суммарное число пройденных промежуточных точек'] = sum_intermediate_points_ships
+
+        # Максимальная скорость по всем кораблям
+        max_speed_ship = ships_df['max_speed'].max()
+        summary_statistic_ship['Максимальная скорость'] = max_speed_ship
+
+        # Средняя скорость по всем кораблям
+        mean_speed_ship = ships_df['speed'].mean()
+        summary_statistic_ship['Средняя скорость'] = mean_speed_ship
+
+        # Средняя интегральная тяжесть льда
+        mean_integer_ice_ship = ships_df['integer_ice'].mean()
+        summary_statistic_ship['Средняя интегральная тяжесть льда'] = mean_integer_ice_ship
+
+        # собираем статистику по ледоколам
+        ice_breakers_df = df[df['is_icebreaker'] == True]
+
+        # Среднее время движения ледокола
+        mean_time_ice_breakers = ice_breakers_df['duration'].mean()
+        summary_statistic_ice_breaker['Среднее время движения'] = mean_time_ice_breakers
+
+        summary_statistic_ice_breaker['Среднее время движения под проводкой'] = None
+        summary_statistic_ice_breaker['Суммарное время движения под проводкой'] = None
+
+        # общее время движения по всем ледоколам
+        sum_time_ice_breakers = ice_breakers_df['duration'].sum()
+        summary_statistic_ice_breaker['Общее время движения'] = sum_time_ice_breakers
+
+        # максимальное время движения ледокола
+        max_time_ice_breakers = ice_breakers_df['duration'].max()
+        summary_statistic_ice_breaker['Максимальное время движения'] = max_time_ice_breakers
+
+        # минимальное время движения по всем ледоколам
+        min_time_ice_breakers = ice_breakers_df['duration'].min()
+        summary_statistic_ice_breaker['Минимальное время движения'] = min_time_ice_breakers
+
+        # Среднее число пройденных промежуточных точек
+        mean_intermediate_points_ice_breakers = ice_breakers_df[
+            ice_breakers_df['target_port'] != ice_breakers_df['port_to']].groupby(['vessel_name'])['port_to'].count().mean()
+        summary_statistic_ice_breaker[
+            'Среднее число пройденных промежуточных точек'] = mean_intermediate_points_ice_breakers
+
+        # Суммарное число пройденных промежуточных точек
+        sum_intermediate_points_ice_breakers = ice_breakers_df[
+            ice_breakers_df['target_port'] != ice_breakers_df['port_to']].groupby(['vessel_name'])['port_to'].count().sum()
+        summary_statistic_ice_breaker[
+            'Суммарное число пройденных промежуточных точек'] = sum_intermediate_points_ice_breakers
+
+        # Максимальная скорость по всем ледоколам
+        max_speed_ice_breaker = ice_breakers_df['max_speed'].max()
+        summary_statistic_ice_breaker['Максимальная скорость'] = max_speed_ice_breaker
+
+        # Средняя скорость по всем ледоколам
+        mean_speed_ice_breaker = ice_breakers_df['speed'].mean()
+        summary_statistic_ice_breaker['Средняя скорость'] = mean_speed_ice_breaker
+
+        # Средняя интегральная тяжесть льда
+        mean_integer_ice_breaker = ice_breakers_df['integer_ice'].mean()
+        summary_statistic_ice_breaker['Средняя интегральная тяжесть льда'] = mean_integer_ice_breaker
+
+        return summary_statistic_ship, summary_statistic_ice_breaker
+
+    @staticmethod
+    def collect_kpi(output_path: str, df: pd.DataFrame):
+        """Метод сбора статистик по результатам расчета"""
+        summary_statistic_ship, summary_statistic_ice_breaker = ModelDash.get_summary_statistic(df)
+        summary_df = pd.DataFrame(index=['Корабли', 'Ледоколы'], columns=summary_statistic_ice_breaker.keys())
+        summary_df.loc['Корабли', :] = list(summary_statistic_ship.values())
+        summary_df.loc['Ледоколы', :] = list(summary_statistic_ice_breaker.values())
+        summary_df['Среднее число пройденных промежуточных точек'] = summary_df[
+            'Среднее число пройденных промежуточных точек'].astype('int')
+        partial_statistic_df = ModelDash.get_partial_statistic(df)
+
+        with pd.ExcelWriter(os.path.join(output_path, 'statistics.xlsx')) as writer:
+            summary_df.to_excel(writer, sheet_name='Общая статистика',index=False)
+            partial_statistic_df.to_excel(writer, sheet_name='Частная статистика',index=False)
+
