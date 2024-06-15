@@ -38,6 +38,7 @@ class Scenario:
         self.edges_df = pd.DataFrame
         self.icebreakers_df = pd.DataFrame
         self.vessels_df = pd.DataFrame
+        self.speed_decrease_df = pd.DataFrame
 
     @property
     def ports_dict(self):
@@ -86,6 +87,7 @@ class Scenario:
             self.edges_df = pd.read_excel(reader, sheet_name='edges')
             self.icebreakers_df = pd.read_excel(reader, sheet_name='icebreakers')
             self.vessels_df = pd.read_excel(reader, sheet_name='vessels')
+            self.speed_decrease_df = pd.read_excel(reader, sheet_name='speed_decrease')
 
     def save_input_objects_to_folder(self):
         """
@@ -97,6 +99,7 @@ class Scenario:
             self.edges_df.to_excel(writer, sheet_name='edges', index=False)
             self.icebreakers_df.to_excel(writer, sheet_name='icebreakers', index=False)
             self.vessels_df.to_excel(writer, sheet_name='vessels', index=False)
+            self.speed_decrease_df.to_excel(writer, sheet_name='speed_decrease', index=False)
         self.config.to_json(self.input_folder_path)
 
     def copy_input_from_other_scenario(self, other_scenario: 'Scenario'):

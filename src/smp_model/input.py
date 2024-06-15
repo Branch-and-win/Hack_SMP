@@ -10,6 +10,7 @@ from src.smp_model.entity.edge_t_connection import EdgeTConnection
 from src.smp_model.entity.port import Port
 from src.smp_model.entity.vessel import Vessel
 from src.smp_model.entity.edge import Edge
+from src.smp_model.entity.speed_decrease import SpeedDecrease
 from src.smp_model.entity.departure import Departure
 from src.smp_model.entity.location import Location
 from src.smp_model.graph.base_graph import BaseGraph
@@ -53,6 +54,8 @@ class ModelInput:
         self.locations: List[Location] = []
         self.locations_dict = {}
 
+        self.speed_decrease_dict: Dict[Tuple[str, int, bool], SpeedDecrease] = {}
+
         self.min_time_from_start: Dict[Tuple[Vessel, Port], float] = {}
         self.edges_for_main_graph: List[Edge] = []
 
@@ -60,6 +63,8 @@ class ModelInput:
         self.read_edges_xlsx()
         self.read_vessels_xlsx()
         self.read_icebreakers_xlsx()
+        self.speed_decrease_xlsx()
+        
 
         self.create_main_graph()
         self.calculate_min_time_from_start()
@@ -241,63 +246,59 @@ class ModelInput:
             self.edges_dict[edge.port_from.id, edge.port_to.id] = edge
         return
 
-    @staticmethod
+    def speed_decrease_xlsx(self) -> None:
+        speed_decrease_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='speed_decrease')
+        for row in speed_decrease_data.itertuples():
+            for i in range(row.integer_velocity_from, row.integer_velocity_to + 1):
+                speed_decrease = SpeedDecrease(  
+                    class_type=row.class_type, 
+                    integer_velocity= i, 
+                    is_icebreaker_assistance=row.is_icebreaker_assistance,
+                    is_possible=row.is_possible,
+                    speed_decrease_pct=row.speed_decrease_pct,
+                    base_speed=row.base_speed
+                )
+                self.speed_decrease_dict[speed_decrease.class_type, speed_decrease.integer_velocity, speed_decrease.is_icebreaker_assistance] = speed_decrease
+
     def calculate_edge_time_by_vessel_class_speed(
+            self,
             length: float,
             integer_integral_ice: float,
             vessel_class: str,
             max_speed: float,
     ) -> float:
+        integer_integral_ice = round(integer_integral_ice, 0)
         if integer_integral_ice < 10:
             return 99999
-        if integer_integral_ice >= 20:
-            return length / max_speed
-        if vessel_class in ['50 лет Победы', 'Ямал']:
-            return length / (min(integer_integral_ice, max_speed))
-        if vessel_class in ['Вайгач', 'Таймыр']:
-            if integer_integral_ice >= 15:
-                return length / (min(integer_integral_ice * 0.9, max_speed))
-            if integer_integral_ice >= 10:
-                return length / (min(integer_integral_ice * 0.75, max_speed))
-        if vessel_class in ['Arc 4', 'Arc 5', 'Arc 6']:
-            if integer_integral_ice >= 15:
-                return length / (max_speed * 0.8)
-            if integer_integral_ice >= 10:
-                return length / (max_speed * 0.7)
-        if vessel_class == 'Arc 7':
-            if integer_integral_ice >= 15:
-                return length / (min(integer_integral_ice, max_speed))
-            if integer_integral_ice >= 10:
-                return length / (min(integer_integral_ice * 0.8, max_speed))
-        return 0.1
+        possible_speed = 0.1
+        for is_icebreaker_assistance in [True, False]:
+            if (vessel_class, integer_integral_ice, is_icebreaker_assistance) in self.speed_decrease_dict.keys():
+                speed_decrease = self.speed_decrease_dict[vessel_class, integer_integral_ice, is_icebreaker_assistance]
+                if speed_decrease.is_possible:
+                    if speed_decrease.base_speed == 'max_speed':
+                        speed = max_speed * (1 - speed_decrease.speed_decrease_pct / 100)
+                    else:
+                        speed = min(integer_integral_ice * (1 - speed_decrease.speed_decrease_pct / 100), max_speed)   
+                    if speed > possible_speed:
+                        possible_speed = speed
+        return length / possible_speed
 
-    @staticmethod
-    def calculate_ice_depending_values(vessel: Vessel, edge: Edge) -> List[Tuple[float, bool, bool]]:
+        
+
+    def calculate_ice_depending_values(self, vessel: Vessel, edge: Edge) -> List[Tuple[float, bool, bool]]:
         integer_integral_ice = round(edge.avg_norm, 0)
         if edge.is_fict:
             return [(0, False, True)]
-        if integer_integral_ice < 10:
-            return [(1000, False, False)]
-        if integer_integral_ice >= 20:
-            return [(vessel.max_speed, False, True)]
-        if vessel.name in ['50 лет Победы', 'Ямал']:
-            return [(integer_integral_ice, False, True)]
-        if vessel.name in ['Вайгач', 'Таймыр']:
-            if integer_integral_ice >= 15:
-                return [(integer_integral_ice * 0.9, False, True)]
-            if integer_integral_ice >= 10:
-                return [(integer_integral_ice * 0.75, False, True)]
-        if vessel.class_type in ['Arc 4', 'Arc 5', 'Arc 6']:
-            if integer_integral_ice >= 15:
-                return [(vessel.max_speed * 0.8, True, True)]
-            if integer_integral_ice >= 10:
-                return [(vessel.max_speed * 0.7, True, True)]
-        if vessel.class_type == 'Arc 7':
-            if integer_integral_ice >= 15:
-                return [(integer_integral_ice, True, True), (vessel.max_speed * 0.6, False, True)]
-            if integer_integral_ice >= 10:
-                return [(integer_integral_ice * 0.8, True, True), (vessel.max_speed * 0.15, False, True)]
-        return []
+        result = []
+        for is_icebreaker_assistance in [True, False]:
+            if (vessel.class_type, integer_integral_ice, is_icebreaker_assistance) in self.speed_decrease_dict.keys():
+                speed_decrease = self.speed_decrease_dict[vessel.class_type, integer_integral_ice, is_icebreaker_assistance]
+                if speed_decrease.base_speed == 'max_speed':
+                    speed = vessel.max_speed * (1 - speed_decrease.speed_decrease_pct / 100)
+                else:
+                    speed = min(integer_integral_ice * (1 - speed_decrease.speed_decrease_pct / 100), vessel.max_speed)
+                result.append((speed, is_icebreaker_assistance, speed_decrease.is_possible))
+        return result
     
     # Требует умной фильтрации
     def generate_departures(self):
@@ -307,11 +308,11 @@ class ModelInput:
                 allowed_vessels = []
                 for v in self.vessels:
                     if (
-                        # t < v.time_start
-                        t < v.time_start + self.min_time_from_start[v, e.port_from] - 1
+                         t < v.time_start
+                        #t < v.time_start + self.min_time_from_start[v, e.port_from] - 1
                     ):
                         continue
-                    for (speed, is_icebreaker_assistance, is_possible) in ModelInput.calculate_ice_depending_values(v, e):
+                    for (speed, is_icebreaker_assistance, is_possible) in self.calculate_ice_depending_values(v, e):
                         if is_possible:
                             departure = Departure(
                                 vessel=v,
@@ -345,8 +346,8 @@ class ModelInput:
                     min_time_to_port_end = 0
                 for t in self.times:
                     if (
-                        # t < v.time_start
-                        t < v.time_start + self.min_time_from_start[v, p] - 1
+                         t < v.time_start
+                        #t < v.time_start + self.min_time_from_start[v, p] - 1
                     ):
                         continue
                     # TODO: Фильтр убивает

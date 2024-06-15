@@ -137,6 +137,7 @@ class Model:
 			solve_results = solver.solve(self.model, tee=True)
 		else:
 			solver.options['TimeLimit'] = 900
+			solver.options['Method'] = 3
 			solve_results = solver.solve(self.model, tee=True, warmstart=True)
 
 		return       

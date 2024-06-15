@@ -37,6 +37,7 @@ class ParentScenario(Scenario):
         self.edges_df = pd.DataFrame
         self.icebreakers_df = pd.DataFrame
         self.vessels_df = pd.DataFrame
+        self.speed_decrease_df = pd.DataFrame
 
         # Путь к папке с дочерними сценариями
         self.child_scenarios_folder_path: str = os.path.join(self.scenario_folder_path, 'child_scenarios')
