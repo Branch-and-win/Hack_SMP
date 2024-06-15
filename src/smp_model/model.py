@@ -1,8 +1,12 @@
 from pyomo.environ import Var, Binary, Objective, quicksum, minimize, SolverFactory, ConcreteModel
+from pyomo.core import value
 
 from src.smp_model.input import ModelInput
 from src.smp_model.output import ModelOutput
 from src.smp_model.utils import constraints_from_dict
+
+from collections import defaultdict
+import sys
 
 
 class Model:
@@ -15,6 +19,7 @@ class Model:
 			self.input,
 		)
 
+
 		self.create_model()
 
 	def create_model(self):
@@ -26,11 +31,6 @@ class Model:
 
 		# Индикатор конца пути для судна v в порту p в момент времени t
 		self.model.stop_place = Var(self.input.locations, domain=Binary)
-		for l in self.input.locations:
-			if l.time == l.vessel.time_start and l.vessel.port_start == l.port:
-				self.model.stop_place[l] = 1
-			else:
-				self.model.stop_place[l] = 0
 
 		## Ограничения
 
@@ -103,7 +103,7 @@ class Model:
 				quicksum(
 					(0 if l.vessel.is_icebreaker else ((l.time - l.vessel.time_start) * self.model.stop_place[l]))
 					+ (0 if l.vessel.is_icebreaker else (l.min_time_to_end_port * self.model.stop_place[l]) * 5)
-					- self.model.stop_place[l] * int(l.port == l.vessel.port_end) * 300
+					- self.model.stop_place[l] * (l.port == l.vessel.port_end) * 300
 					for l in self.input.locations
 				)
 				+ quicksum(
@@ -117,7 +117,6 @@ class Model:
 
 	def solve_model(self):
 		print('Запуск оптимизации')
-		print(self.input.config)
 		
 		# Solver = SolverFactory('cbc')
 
@@ -129,16 +128,96 @@ class Model:
 		#solver.options['time_limit'] = 900
 		#solver.options['mip_rel_gap'] = 0.02
 
-		solver_name = 'appsi_highs'
-		solver = SolverFactory(solver_name)
-		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
-		if solver_name == 'appsi_highs':
-			solver.options['TimeLimit'] = 900
-			solve_results = solver.solve(self.model, tee=True)
-		else:
-			solver.options['TimeLimit'] = 900
-			solver.options['Method'] = 3
-			solve_results = solver.solve(self.model, tee=True, warmstart=True)
+		solver = SolverFactory('gurobi')
+		solver.options['TimeLimit'] = 900
 
-		return       
+		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
+		solve_results = solver.solve(self.model, tee=True)
+
+		return
+
+	def correct_results(self):
+		print('Корректировка результатов')
+
+		### Таблица Departures
+		self.model.departure_result = defaultdict(int)
+		self.model.departure_results = list()
+		delay = defaultdict(int)
+		corrected_time = dict()
+		corrected_speed = dict()
+		corrected_duration = dict()
+
+		for d in self.input.departures:
+			if value(self.model.departure[d]) > 0.5:
+				self.model.departure_result[d] = 1
+				corrected_time[d] = d.time
+				corrected_speed[d] = d.speed
+				corrected_duration[d] = d.duration
+
+		# Связки
+		linkage_departures = defaultdict(list)
+		len_linkage = defaultdict(int)
+		vessel_departures = defaultdict(list)
+		for d in self.model.departure_result.keys():
+			if d.edge.port_from.id != d.edge.port_to.id:
+				linkage_departures[d.edge.port_from.id, d.edge.port_to.id, d.time].append(d)
+				len_linkage[d.edge.port_from.id, d.edge.port_to.id, d.time] += 1
+			vessel_departures[d.vessel.id].append(d)
+
+		LINKAGES = sorted([linkage for linkage in linkage_departures.keys() 
+					if len_linkage[linkage] > 1], key=lambda x: x[2])
+
+		# Сортируем отправления по дате
+		for vessel_id in vessel_departures.keys():
+			vessel_departures[vessel_id] = sorted(vessel_departures[vessel_id],
+											key=lambda x: x.time)
+
+		# Итерируемся по связкам и сдвигаем время
+		for linkage in LINKAGES:
+			speed = min(d.speed for d in linkage_departures[linkage])
+			duration = max(d.duration for d in linkage_departures[linkage])
+			start_time = max(d.time + delay[d] for d in linkage_departures[linkage])
+			for d in linkage_departures[linkage]:
+				prev_delay = 0
+				prev_time = start_time
+				prev_duration = duration
+
+				corrected_speed[d] = speed
+				corrected_duration[d] = duration
+				corrected_time[d] = start_time
+
+				for d1 in vessel_departures[d.vessel.id]:
+					if d1.time > d.time:
+						delay[d1] = max(prev_time + prev_delay + prev_duration - d1.time, 0)
+						corrected_time[d1] = d1.time + delay[d1]
+
+						if delay[d1] == 0:
+							break
+						prev_delay = delay[d1]
+						prev_time = d1.time
+						prev_duration = d1.duration
+
+		# Записываем результат для формирования отчета
+		for d in self.model.departure_result.keys():
+			d.speed = corrected_speed[d]
+			d.duration = corrected_duration[d]
+			d.time = corrected_time[d]
+			self.model.departure_results.append(d)
+			
+
+		### Таблица Locations
+		self.model.stop_place_result = dict()
+		self.model.stop_place_results = list()
+		for l in self.input.locations:
+			self.model.stop_place_result[l] = value(self.model.stop_place[l])
+			if value(self.model.stop_place[l]) > 0.5:
+				try:
+					l.time = max(corrected_time[d] + corrected_duration[d] for d in vessel_departures[l.vessel.id])
+				except:
+					# почему-то судно с vessel.id = 14 попадает сюда, хотя его нет в расчете
+					pass
+				self.model.stop_place_results.append(l)
+
+
+		return      
 
