@@ -319,7 +319,8 @@ class ModelInput:
                                 edge=e,
                                 time=t,
                                 speed=speed,
-                                is_icebreaker_assistance=is_icebreaker_assistance
+                                is_icebreaker_assistance=is_icebreaker_assistance,
+                                hours_in_interval=self.config.hours_in_interval
                             )
                             if (
                                 t + departure.duration in self.times
