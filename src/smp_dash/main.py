@@ -265,10 +265,11 @@ class ModelDash:
         fig2.show()
 
     @staticmethod
-    def get_partial_statistic(df: pd.DataFrame):
+    def get_partial_statistic(output_df: pd.DataFrame):
         """Метод вывода статистика результатов в разрезе корабля"""
         statistic_ship = pd.DataFrame()
 
+        df = output_df[output_df['port_to'] != output_df['port_from']]
         statistic_ship['vessel_name'] = df.sort_values(by='vessel_name')['vessel_name'].unique()
         statistic_ship['vessel_id'] = df.sort_values(by='vessel_name')['vessel_id'].unique()
         # Среднее время движения
@@ -324,6 +325,16 @@ class ModelDash:
                 df1[df1['vessel_name'] == v]['integer_ice'].iloc[0]
 
         statistic_ship = statistic_ship.merge(df[['vessel_name', 'is_icebreaker']], on='vessel_name', how='left')
+
+        # собираем статистику по ожиданиям
+        df = output_df[output_df['port_to'] == output_df['port_from']]
+        df1 = df.groupby(['vessel_name'])['duration'].sum().reset_index()
+        statistic_ship['Суммарное время ожидания'] = 0
+        for v in statistic_ship['vessel_name'].unique():
+            if v not in df1['vessel_name'].unique():
+                continue
+            statistic_ship.loc[statistic_ship['vessel_name'] == v, 'Суммарное время ожидания'] = \
+                df1[df1['vessel_name'] == v]['duration'].iloc[0]
         statistic_ship = statistic_ship.drop_duplicates(subset='vessel_name')
         return statistic_ship
 
@@ -334,7 +345,7 @@ class ModelDash:
         summary_statistic_ice_breaker = {}
 
         # собираем статистику по кораблям
-        ships_df = df[df['is_icebreaker'] == False]
+        ships_df = df[(df['is_icebreaker'] == False) & (df['port_from'] != df['port_to'])]
 
         # Среднее время движения корабля
         mean_time_ship = ships_df['duration'].mean()
@@ -383,7 +394,7 @@ class ModelDash:
         summary_statistic_ship['Средняя интегральная тяжесть льда'] = mean_integer_ice_ship
 
         # собираем статистику по ледоколам
-        ice_breakers_df = df[df['is_icebreaker'] == True]
+        ice_breakers_df = df[(df['is_icebreaker'] == True) & (df['port_from'] != df['port_to'])]
 
         # Среднее время движения ледокола
         mean_time_ice_breakers = ice_breakers_df['duration'].mean()
@@ -427,6 +438,14 @@ class ModelDash:
         # Средняя интегральная тяжесть льда
         mean_integer_ice_breaker = ice_breakers_df['integer_ice'].mean()
         summary_statistic_ice_breaker['Средняя интегральная тяжесть льда'] = mean_integer_ice_breaker
+
+        # Статистика по ожиданиям
+        ice_breakers_df_w = df[(df['is_icebreaker'] == True) & (df['port_from'] == df['port_to'])]
+        ships_df_w = df[(df['is_icebreaker'] == False) & (df['port_from'] == df['port_to'])]
+        w_ice_breakers = ice_breakers_df_w['duration'].sum()
+        w_ships = ships_df_w['duration'].sum()
+        summary_statistic_ice_breaker['Общее время простоя'] = w_ice_breakers
+        summary_statistic_ship['Общее время простоя'] = w_ships
 
         return summary_statistic_ship, summary_statistic_ice_breaker
 
