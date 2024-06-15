@@ -53,13 +53,18 @@ class ModelInput:
         self.locations: List[Location] = []
         self.locations_dict = {}
 
-        self.min_distance_from_start: Dict[Tuple[Vessel, Port], float] = {}
+        self.min_time_from_start: Dict[Tuple[Vessel, Port], float] = {}
+        self.edges_for_main_graph: List[Edge] = []
 
         self.read_ports_xlsx()
         self.read_edges_xlsx()
         self.read_vessels_xlsx()
         self.read_icebreakers_xlsx()
-        self.calculate_min_distance_from_start()
+
+        self.create_main_graph()
+        self.calculate_min_time_from_start()
+        self.fill_best_routes()
+
         self.generate_departures()
         self.generate_locations()
         self.generate_links()
@@ -72,10 +77,52 @@ class ModelInput:
                 else:
                     p_from.add_min_dist(p_to, 300)
 
-    def calculate_min_distance_from_start(self):
+    def fill_best_routes(self):
+        for v in self.vessels:
+            if v.is_icebreaker:
+                continue
+            _, best_routes = self.main_graph.k_shortest_paths(
+                v.port_start,
+                v.port_end,
+                k=5,
+            )
+            possible_edges = {
+                self.edges_dict[port_start.id, port_end.id]
+                for best_route in best_routes
+                for port_start, port_end in zip(best_route[:-1], best_route[1:])
+            }
+            possible_ports = set()
+            for best_route in best_routes:
+                for port in best_route:
+                    possible_ports.add(port)
+            v.fill_possible_edges(possible_edges, possible_ports)
+
+    def create_main_graph(self) -> None:
+        vessel_type_w_max_speed = {v.type_max_speed: v.type_max_speed_str for v in self.vessels}
+        graph_edges = []
+        for e in self.edges_for_main_graph:
+            graph_edges.append((
+                e.port_from,
+                e.port_to,
+                {
+                    v_key:
+                    self.calculate_edge_time_by_vessel_class_speed(
+                        e.distance,
+                        e.avg_norm,
+                        vessel_type,
+                        max_speed
+                    )
+                    for (vessel_type, max_speed), v_key in vessel_type_w_max_speed.items()
+                }
+            ))
+        self.main_graph.add_edges_from(graph_edges)
+
+    def calculate_min_time_from_start(self):
         for p in self.ports:
             for v in self.vessels:
-                self.min_distance_from_start[v, p] = self.main_graph.k_shortest_paths(v.port_start, p)[0][0] / v.max_speed
+                self.min_time_from_start[v, p] = (
+                    self.main_graph.k_shortest_paths(v.port_start, p, k=1, weight=v.type_max_speed_str)[0][0]
+                )
 
     def generate_time(self) -> List[int]:
         return list(range(math.ceil(self.config.planning_hours / self.config.hours_in_interval)))
@@ -103,20 +150,21 @@ class ModelInput:
             & (vessel_data['date_start'] >= self.config.start_date)
         ]
         for row in vessel_data.itertuples():
-            _, best_routes = self.main_graph.k_shortest_paths(
-                self.ports_dict[row.start_point_id],
-                self.ports_dict[row.end_point_id],
-                k=5,
-            )
-            possible_edges = {
-                self.edges_dict[port_start.id, port_end.id]
-                for best_route in best_routes
-                for port_start, port_end in zip(best_route[:-1], best_route[1:])
-            }
-            possible_ports = set()
-            for best_route in best_routes:
-                for port in best_route:
-                    possible_ports.add(port)
+            # _, best_routes = self.main_graph.k_shortest_paths(
+            #     self.ports_dict[row.start_point_id],
+            #     self.ports_dict[row.end_point_id],
+            #     k=5,
+            # )
+            # possible_edges = set()
+            # possible_edges = {
+            #     self.edges_dict[port_start.id, port_end.id]
+            #     for best_route in best_routes
+            #     for port_start, port_end in zip(best_route[:-1], best_route[1:])
+            # }
+            # possible_ports = set()
+            # for best_route in best_routes:
+            #     for port in best_route:
+            #         possible_ports.add(port)
 
             vessel = Vessel(
                 id=row.vessel_id,
@@ -127,8 +175,6 @@ class ModelInput:
                 time_start=self.date_to_time(row.date_start),
                 max_speed=row.max_speed,
                 class_type=row.class_type,
-                possible_edges=possible_edges,
-                possible_ports=possible_ports,
             )
             self.vessels.append(vessel)
             self.vessels_dict[vessel.id] = vessel
@@ -183,7 +229,7 @@ class ModelInput:
             self.edges.append(edge_2)
             self.edges_dict[edge_1.port_from.id, edge_1.port_to.id] = edge_1
             self.edges_dict[edge_2.port_from.id, edge_2.port_to.id] = edge_2
-            self.main_graph.add_edge(self.ports_dict[row.start_point_id], self.ports_dict[row.end_point_id], length=row.length, weight=0)
+            self.edges_for_main_graph.append(edge_1)
         for p in self.ports:
             edge = Edge(
                 port_from=p, 
@@ -193,8 +239,39 @@ class ModelInput:
             )
             self.edges.append(edge)
             self.edges_dict[edge.port_from.id, edge.port_to.id] = edge
-        return 
-    
+        return
+
+    @staticmethod
+    def calculate_edge_time_by_vessel_class_speed(
+            length: float,
+            integer_integral_ice: float,
+            vessel_class: str,
+            max_speed: float,
+    ) -> float:
+        if integer_integral_ice < 10:
+            return 99999
+        if integer_integral_ice >= 20:
+            return length / max_speed
+        if vessel_class in ['50 лет Победы', 'Ямал']:
+            return length / (min(integer_integral_ice, max_speed))
+        if vessel_class in ['Вайгач', 'Таймыр']:
+            if integer_integral_ice >= 15:
+                return length / (min(integer_integral_ice * 0.9, max_speed))
+            if integer_integral_ice >= 10:
+                return length / (min(integer_integral_ice * 0.75, max_speed))
+        if vessel_class in ['Arc 4', 'Arc 5', 'Arc 6']:
+            if integer_integral_ice >= 15:
+                return length / (max_speed * 0.8)
+            if integer_integral_ice >= 10:
+                return length / (max_speed * 0.7)
+        if vessel_class == 'Arc 7':
+            if integer_integral_ice >= 15:
+                return length / (min(integer_integral_ice, max_speed))
+            if integer_integral_ice >= 10:
+                return length / (min(integer_integral_ice * 0.8, max_speed))
+        return 0.1
+
+    @staticmethod
     def calculate_ice_depending_values(vessel: Vessel, edge: Edge) -> List[Tuple[float, bool, bool]]:
         integer_integral_ice = round(edge.avg_norm, 0)
         if edge.is_fict:
@@ -230,8 +307,8 @@ class ModelInput:
                 allowed_vessels = []
                 for v in self.vessels:
                     if (
-                        t < v.time_start
-                        # t < v.time_start + self.min_distance_from_start[v, e.port_from] - 1
+                        # t < v.time_start
+                        t < v.time_start + self.min_time_from_start[v, e.port_from] - 1
                     ):
                         continue
                     for (speed, is_icebreaker_assistance, is_possible) in ModelInput.calculate_ice_depending_values(v, e):
@@ -263,13 +340,13 @@ class ModelInput:
         for v in self.vessels:
             for p in self.ports:
                 if v.port_end:
-                    min_time_to_port_end = self.main_graph.k_shortest_paths(p, v.port_end)[0][0] / v.max_speed
+                    min_time_to_port_end = self.main_graph.k_shortest_paths(p, v.port_end, weight=v.type_max_speed_str)[0][0]
                 else:
                     min_time_to_port_end = 0
                 for t in self.times:
                     if (
-                        t < v.time_start
-                        # t < v.time_start + self.min_distance_from_start[v, p] - 1
+                        # t < v.time_start
+                        t < v.time_start + self.min_time_from_start[v, p] - 1
                     ):
                         continue
                     # TODO: Фильтр убивает

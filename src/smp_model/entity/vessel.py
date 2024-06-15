@@ -15,8 +15,6 @@ class Vessel:
             time_start,
             max_speed,
             class_type,
-            possible_edges=None,
-            possible_ports=None,
     ) -> None:
         self.id = id
         self.name = name
@@ -28,11 +26,7 @@ class Vessel:
         self.class_type = class_type
         # Допустимые ребра для передвижения судна
         self.possible_edges: List[Edge] = []
-        if possible_edges is not None:
-            self.possible_edges = possible_edges
         self.possible_ports: Set[Port] = set()
-        if possible_ports is not None:
-            self.possible_ports = possible_ports
         self.locations_by_vessel = []
 
     def add_location(self, location):
@@ -44,3 +38,22 @@ class Vessel:
 
     def __repr__(self):
         return f"V({self.id}, {self.name})"
+
+    @property
+    def type_max_speed(self):
+        if not self.is_icebreaker:
+            return self.class_type, self.max_speed
+        else:
+            return self.name, self.max_speed
+
+    @property
+    def type_max_speed_str(self):
+        if not self.is_icebreaker:
+            return f'{self.class_type}_s{self.max_speed}'
+        else:
+            return f'{self.name}_s{self.max_speed}'
+
+    def fill_possible_edges(self, possible_edges, possible_ports):
+        self.possible_edges = possible_edges
+        self.possible_ports = possible_ports
+

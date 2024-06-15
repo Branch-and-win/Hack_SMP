@@ -80,7 +80,7 @@ class BaseGraph(nx.Graph):
 
                 for e in edges_removed:
                     u, v, edge_attr = e
-                    graph_copy.add_edge(u, v, length=edge_attr['length'], weight=edge_attr['weight'])
+                    graph_copy.add_edge(u, v, **edge_attr)
 
             if graph_heap:
                 (l, _, p) = heappop(graph_heap)
