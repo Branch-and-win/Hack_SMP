@@ -6,6 +6,7 @@ from src.smp_model.output import ModelOutput
 from src.smp_model.utils import constraints_from_dict
 
 from collections import defaultdict
+import copy
 import sys
 
 
@@ -129,6 +130,7 @@ class Model:
 		#solver.options['mip_rel_gap'] = 0.02
 
 		solver = SolverFactory('gurobi')
+		# solver = SolverFactory('scip', executable="./scip")
 		solver.options['TimeLimit'] = 900
 
 		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
@@ -146,6 +148,7 @@ class Model:
 		corrected_time = dict()
 		corrected_speed = dict()
 		corrected_duration = dict()
+		# vessel_port_example = dict()
 
 		for d in self.input.departures:
 			if value(self.model.departure[d]) > 0.5:
@@ -153,6 +156,9 @@ class Model:
 				corrected_time[d] = d.time
 				corrected_speed[d] = d.speed
 				corrected_duration[d] = d.duration
+			
+			# if d.edge.port_from.id == d.edge.port_to.id:
+			# 	vessel_port_example[(d.vessel.id, d.edge.port_from.id)] = d
 
 		# Связки
 		linkage_departures = defaultdict(list)
@@ -162,7 +168,8 @@ class Model:
 			if d.edge.port_from.id != d.edge.port_to.id:
 				linkage_departures[d.edge.port_from.id, d.edge.port_to.id, d.time].append(d)
 				len_linkage[d.edge.port_from.id, d.edge.port_to.id, d.time] += 1
-			vessel_departures[d.vessel.id].append(d)
+				vessel_departures[d.vessel.id].append(d)
+
 
 		LINKAGES = sorted([linkage for linkage in linkage_departures.keys() 
 					if len_linkage[linkage] > 1], key=lambda x: x[2])
@@ -171,6 +178,8 @@ class Model:
 		for vessel_id in vessel_departures.keys():
 			vessel_departures[vessel_id] = sorted(vessel_departures[vessel_id],
 											key=lambda x: x.time)
+
+
 
 		# Итерируемся по связкам и сдвигаем время
 		for linkage in LINKAGES:
@@ -198,11 +207,37 @@ class Model:
 						prev_duration = d1.duration
 
 		# Записываем результат для формирования отчета
-		for d in self.model.departure_result.keys():
-			d.speed = corrected_speed[d]
-			d.duration = corrected_duration[d]
-			d.time = corrected_time[d]
-			self.model.departure_results.append(d)
+		for vessel_id in vessel_departures.keys():
+			prev_finish_time = 0
+			for d in vessel_departures[vessel_id]:
+
+				# Добавление ребра А-А
+				interval = corrected_time[d] - max(d.vessel.time_start, prev_finish_time)
+				if interval > 0:
+					# d1 = vessel_port_example[vessel_id, d.edge.port_from.id]
+					d1 = copy.deepcopy(d)
+					d1.speed = 0
+					d1.edge.avg_norm = 21
+					d1.is_icebreaker_assistance = 0
+					d1.edge.port_to = d1.edge.port_from
+
+					d1.time = corrected_time[d] - interval
+					d1.duration = interval
+					self.model.departure_results.append(d1)
+
+				 
+				d.speed = corrected_speed[d]
+				d.duration = corrected_duration[d]
+				d.time = corrected_time[d]
+				self.model.departure_results.append(d)
+
+				prev_finish_time = d.time + d.duration
+
+		# for d in self.model.departure_result.keys():
+		# 	d.speed = corrected_speed[d]
+		# 	d.duration = corrected_duration[d]
+		# 	d.time = corrected_time[d]
+		# 	self.model.departure_results.append(d)
 			
 
 		### Таблица Locations
