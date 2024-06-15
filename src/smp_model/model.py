@@ -107,8 +107,10 @@ class Model:
 					for l in self.input.locations
 				)
 				+ quicksum(
-					d * 0 for d in self.model.departure.values()
-				) / 10
+					self.model.departure[d] * d.duration 
+					for d in self.input.departures 
+					if not d.edge.is_fict
+				) / 100
 			)
 			, sense=minimize
 		)
@@ -133,10 +135,10 @@ class Model:
 		solver = SolverFactory(solver_name)
 		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
 		if solver_name == 'appsi_highs':
-			solver.options['TimeLimit'] = 900
+			solver.options['time_limit'] = 3600
 			solve_results = solver.solve(self.model, tee=True)
 		else:
-			solver.options['TimeLimit'] = 900
+			solver.options['TimeLimit'] = 3600
 			solver.options['Method'] = 3
 			solve_results = solver.solve(self.model, tee=True, warmstart=True)
 
