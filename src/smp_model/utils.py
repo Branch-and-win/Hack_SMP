@@ -25,28 +25,10 @@ def constraints_from_dict(cons, model, prefix):
 
 
 def choose_week_for_calc(config_date, dates):
-	converted_month_dict = {
-		'Jan':"01",
-		'Feb':"02",
-		'Mar':"03",
-		'Apr':"04",
-		'May':"05",
-		'Jun':"07",
-		'Jul':"08",
-		'Aug':"09",
-		'Sep':"09",
-		'Oct':"10",
-		"Nov":"11",
-		'Dec':"12",
-	}
 	day_diff = {}
 	for date in dates:
 		try:
-			month = date.split('-')[1]
-			sheet_date = datetime.strptime(
-				date.replace(month, converted_month_dict.get(month,month)), "%d-%m-%Y"
-			)
-			diff = (sheet_date - config_date).days
+			diff = (date - config_date).days
 			if diff > 0:
 				continue
 			day_diff[date] = diff
