@@ -140,7 +140,8 @@ def update_route_graph(scenario_name, vessel_name):
             (dash_data.result_departures_df.vessel_name == '____UNREAL_VALUE_____')
         ]
     gant_fig = px.timeline(gant_df, x_start="time_from_dt", x_end="time_to_dt", y="vessel_name",
-                       color="edge_type", color_discrete_map=dash_data.color_discrete_map, category_orders=dash_data.category_orders)
+                       color="edge_type", color_discrete_map=dash_data.color_discrete_map, category_orders=dash_data.category_orders,
+                           hover_data=['integer_ice', 'speed', 'max_speed', 'port_from', 'port_to'])
     return gant_fig, route_fig
 
 
