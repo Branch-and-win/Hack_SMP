@@ -6,4 +6,4 @@ WORKDIR /app/
 
 COPY . ./
 
-CMD gunicorn -b 0.0.0.0:5020 src.smp_dash.app:app --timeout 90
+CMD gunicorn -b 0.0.0.0:5020 src.smp_dash.app:app --timeout 90 --preload --workers 4
