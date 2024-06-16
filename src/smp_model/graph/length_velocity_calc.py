@@ -26,11 +26,12 @@ class LengthVelocityCalc:
     }
     inversed_converted_month_dict = {v: k for k, v in converted_month_dict.items()}
 
-    def __init__(self, input: ModelInput):
+    def __init__(self, input: ModelInput, filename: str = "IntegrVelocity.xlsx"):
 
         self.input = input
-        self.lon_arr: pd.DataFrame = pd.read_excel(os.path.join(input.input_folder_path, "IntegrVelocity.xlsx"), sheet_name='lon', header=None)
-        self.lat_arr: pd.DataFrame = pd.read_excel(os.path.join(input.input_folder_path, "IntegrVelocity.xlsx"), sheet_name='lat', header=None)
+        self.filename = filename
+        self.lon_arr: pd.DataFrame = pd.read_excel(os.path.join(input.input_folder_path, filename), sheet_name='lon', header=None)
+        self.lat_arr: pd.DataFrame = pd.read_excel(os.path.join(input.input_folder_path, filename), sheet_name='lat', header=None)
         self.date_vel_env, self.vel_arr = self.get_velocity_data(input.config.start_date)
 
         self.graph: dict = defaultdict(lambda: {})
@@ -56,19 +57,21 @@ class LengthVelocityCalc:
         return pd.DataFrame({'lon': lon_arr, 'lat': lat_arr, 'vel': vel_arr, "idx": idxs})
 
     def get_velocity_data(self, date: str) -> Tuple[str,np.array]:
-        str_date = date.strftime("%Y-%m-%d").split('-')
-        str_date[1] = self.converted_month_dict.get(str_date[1], '03')
+        astr_date = date.strftime("%Y-%m-%d").split('-')
+        astr_date[1] = self.converted_month_dict.get(astr_date[1], '03')
 
-        velocity_book = pd.ExcelFile(os.path.join(self.input.input_folder_path, "IntegrVelocity.xlsx"))
+        velocity_book = pd.ExcelFile(os.path.join(self.input.input_folder_path, self.filename))
         sheets = velocity_book.sheet_names
-        if '-'.join(str_date) not in sheets:
-            sheet = choose_week_for_calc(date, sheets)
-            out_date = sheet.split('-')
-            out_date[1] = self.inversed_converted_month_dict[out_date[1]]
-            return '-'.join(out_date), pd.read_excel(
-                os.path.join(self.input.input_folder_path, "IntegrVelocity.xlsx"), sheet_name=sheet, header=None).to_numpy()
+        if '-'.join(astr_date) not in sheets:
+            dates = [i.replace(i.split('-')[1], self.converted_month_dict.get(i.split('-')[1], '03')) for i in sheets if i not in ['lon','lat']]
+            dates = [pd.to_datetime(i, format='%d-%m-%Y') for i in dates]
+            sheet = choose_week_for_calc(date, dates)
+            str_date = sheet.strftime("%d-%m-%Y").split('-')
+            str_date[1] = self.converted_month_dict.get(str_date[1], 'Mar')
+            return date.strftime("%Y-%m-%d"), pd.read_excel(
+                os.path.join(self.input.input_folder_path, self.filename), sheet_name='-'.join(str_date), header=None).to_numpy()
         else:
-            return '-'.join(str_date), pd.read_excel(os.path.join(self.input.input_folder_path, "IntegrVelocity.xlsx"), sheet_name='-'.join(str_date), header=None).to_numpy()
+            return '-'.join(astr_date), pd.read_excel(os.path.join(self.input.input_folder_path, self.filename), sheet_name='-'.join(astr_date), header=None).to_numpy()
 
     def create_graph(self):
 
@@ -208,57 +211,72 @@ class LengthVelocityCalc:
         return path, shortest_path[end_node] * convert_to_mni['km']
 
 
-def dump_velocity_length(input: ModelInput) -> None:
+def dump_velocity_length(input: ModelInput, filename: str = 'IntegrVelocity.xlsx') -> None:
     """Обновление информации о ледовых условиях"""
+
+    if not os.path.isfile(os.path.join(input.input_folder_path, filename)):
+        return
+
+    velocity_book = pd.ExcelFile(os.path.join(input.input_folder_path, filename))
+    sheets = velocity_book.sheet_names
     data = {
         'start_point_id': [],
         'end_point_id': [],
         'avg_norm': [],
-        'length': []
+        'length': [],
+        'date': [],
+
     }
-    graph_creator = LengthVelocityCalc(input)
-    graph_creator.create_graph()
-    graph, nodes = graph_creator.graph, graph_creator.nodes
-    temp_set = set()
-    for edge in input.edges:
-        if (edge.port_to.id, edge.port_from.id) in temp_set:
+    for sheet in sheets:
+        v_l = sheet.split('-')
+        if len(v_l) <= 1:
             continue
-        if edge.is_fict:
-            continue
-        data['start_point_id'].append(edge.port_from.id)
-        data['end_point_id'].append(edge.port_to.id)
-        temp_set.add((edge.port_from.id, edge.port_to.id))
-        try:
-            print(edge.port_from.name,'->', edge.port_to.name)
-            route, dist = LengthVelocityCalc.dijkstra_algorithm(edge.port_from.name, edge.port_to.name, nodes, graph)
-            print(dist)
-            num_points = len(route)
-            velocity_values = []
-            for index, point in enumerate(route):
+        v_l[1] = LengthVelocityCalc.inversed_converted_month_dict.get(v_l[1], v_l[1])
+        date = pd.to_datetime('-'.join(v_l), format='%d-%m-%Y')
+        print(f'Расчет интегральной тяжести на {date}')
+        input.config.start_date = date
+        graph_creator = LengthVelocityCalc(input)
+        graph_creator.create_graph()
+        graph, nodes = graph_creator.graph, graph_creator.nodes
+        temp_set = set()
+        for edge in input.edges:
+            if (edge.port_to.id, edge.port_from.id) in temp_set:
+                continue
+            if edge.is_fict:
+                continue
+            data['start_point_id'].append(edge.port_from.id)
+            data['end_point_id'].append(edge.port_to.id)
+            data['date'].append(date)
+            temp_set.add((edge.port_from.id, edge.port_to.id))
+            try:
+                print(edge.port_from.name,'->', edge.port_to.name)
+                route, dist = LengthVelocityCalc.dijkstra_algorithm(edge.port_from.name, edge.port_to.name, nodes, graph)
+                print(dist)
+                num_points = len(route)
+                velocity_values = []
+                for index, point in enumerate(route):
 
-                if index in (0, num_points - 1):
-                    continue
+                    if index in (0, num_points - 1):
+                        continue
 
-                if len(point.split('_')) == 1:
-                    continue
+                    if len(point.split('_')) == 1:
+                        continue
 
-                i, j = int(point.split('_')[0]), int(point.split('_')[1])
-                velocity_values.append(graph_creator.vel_arr[i, j])
+                    i, j = int(point.split('_')[0]), int(point.split('_')[1])
+                    velocity_values.append(graph_creator.vel_arr[i, j])
 
-            velocity = np.mean(velocity_values)
+                velocity = np.mean(velocity_values)
 
-            data['avg_norm'].append(velocity)
-            data['length'].append(dist)
+                data['avg_norm'].append(velocity)
+                data['length'].append(dist)
 
-        except Exception as e:
-            print(e)
-            data['avg_norm'].append(0)
-            data['length'].append(1000)
-            continue
+            except Exception as e:
+                print(e)
+                data['avg_norm'].append(0)
+                data['length'].append(1000)
+                continue
 
     data = pd.DataFrame(data)
     path = os.path.join(input.input_folder_path, 'velocity_env.xlsx')
-
-    mode = 'a' if os.path.isfile(path) else 'w'
-    with pd.ExcelWriter(path, mode=mode) as writer:
-        data.to_excel(writer, sheet_name=f'{graph_creator.date_vel_env}', index=False)
+    with pd.ExcelWriter(path) as writer:
+        data.to_excel(writer, index=False)
