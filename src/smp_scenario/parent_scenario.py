@@ -51,10 +51,10 @@ class ParentScenario(Scenario):
         """
         self.clear_or_create_folder(self.child_scenarios_folder_path)
         if os.path.isfile(os.path.join(self.input_folder_path, 'velocity_env.xlsx')):
-            velocity_book = pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx'))
-            velocity_dates = velocity_book.sheet_names
-            velocity_dates = [datetime.strptime(d, '%d-%m-%Y') for d in velocity_dates]
-            velocity_dates_flt = [d for d in velocity_dates if self.config.start_date_dt <= d <= self.config.end_date_dt]
+            with pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx')) as reader:
+                velocity_df = pd.read_excel(reader, sheet_name='Sheet1')
+            velocity_dates = velocity_df['date'].unique()
+            velocity_dates_flt = [pd.Timestamp(d).to_pydatetime() for d in velocity_dates if self.config.start_date_dt <= pd.Timestamp(d).to_pydatetime() <= self.config.end_date_dt]
             min_date_with_velocity = min(velocity_dates_flt)
             first_planning_date = max(self.config.start_date_dt, min_date_with_velocity - timedelta(days=self.config.duration_days))
         else:
