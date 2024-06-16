@@ -73,8 +73,7 @@ class ModelOutput:
                 d.speed,
                 d.vessel.max_speed
             ]
-            for d in self.input.departures
-            if value(self.model.departure[d]) > 0.5
+            for d in self.model.departure_results
         ]
         self.result_departures_df = pd.DataFrame(result_departures, columns=self.result_departures_df.columns)
 
@@ -88,8 +87,7 @@ class ModelOutput:
                 '-' if l.vessel.is_icebreaker else l.vessel.port_end.name,
                 l.vessel.is_icebreaker
             ]
-            for l in self.input.locations
-            if value(self.model.stop_place[l]) > 0.5
+            for l in self.model.stop_place_results
         ]
 
         self.result_locations_df = pd.DataFrame(result_locations, columns=self.result_locations_df.columns)

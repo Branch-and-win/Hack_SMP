@@ -1,8 +1,13 @@
 from pyomo.environ import Var, Binary, Objective, quicksum, minimize, SolverFactory, ConcreteModel
+from pyomo.core import value
 
 from src.smp_model.input import ModelInput
 from src.smp_model.output import ModelOutput
 from src.smp_model.utils import constraints_from_dict
+
+from collections import defaultdict
+import copy
+import sys
 
 
 class Model:
@@ -143,4 +148,122 @@ class Model:
 			solve_results = solver.solve(self.model, tee=True, warmstart=True)
 
 		return       
+	
+	def correct_results(self):
+		print('Корректировка результатов')
+
+		### Таблица Departures
+		self.model.departure_result = defaultdict(int)
+		self.model.departure_results = list()
+		delay = defaultdict(int)
+		corrected_time = dict()
+		corrected_speed = dict()
+		corrected_duration = dict()
+		# vessel_port_example = dict()
+
+		for d in self.input.departures:
+			if value(self.model.departure[d]) > 0.5:
+				self.model.departure_result[d] = 1
+				corrected_time[d] = d.time
+				corrected_speed[d] = d.speed
+				corrected_duration[d] = d.duration
+			
+			# if d.edge.port_from.id == d.edge.port_to.id:
+			# 	vessel_port_example[(d.vessel.id, d.edge.port_from.id)] = d
+
+		# Связки
+		linkage_departures = defaultdict(list)
+		len_linkage = defaultdict(int)
+		vessel_departures = defaultdict(list)
+		for d in self.model.departure_result.keys():
+			if d.edge.port_from.id != d.edge.port_to.id:
+				linkage_departures[d.edge.port_from.id, d.edge.port_to.id, d.time].append(d)
+				len_linkage[d.edge.port_from.id, d.edge.port_to.id, d.time] += 1
+				vessel_departures[d.vessel.id].append(d)
+
+
+		LINKAGES = sorted([linkage for linkage in linkage_departures.keys() 
+					if len_linkage[linkage] > 1], key=lambda x: x[2])
+
+		# Сортируем отправления по дате
+		for vessel_id in vessel_departures.keys():
+			vessel_departures[vessel_id] = sorted(vessel_departures[vessel_id],
+											key=lambda x: x.time)
+
+
+
+		# Итерируемся по связкам и сдвигаем время
+		for linkage in LINKAGES:
+			speed = min(d.speed for d in linkage_departures[linkage])
+			duration = max(d.duration for d in linkage_departures[linkage])
+			start_time = max(d.time + delay[d] for d in linkage_departures[linkage])
+			for d in linkage_departures[linkage]:
+				prev_delay = 0
+				prev_time = start_time
+				prev_duration = duration
+
+				corrected_speed[d] = speed
+				corrected_duration[d] = duration
+				corrected_time[d] = start_time
+
+				for d1 in vessel_departures[d.vessel.id]:
+					if d1.time > d.time:
+						delay[d1] = max(prev_time + prev_delay + prev_duration - d1.time, 0)
+						corrected_time[d1] = d1.time + delay[d1]
+
+						if delay[d1] == 0:
+							break
+						prev_delay = delay[d1]
+						prev_time = d1.time
+						prev_duration = d1.duration
+
+		# Записываем результат для формирования отчета
+		for vessel_id in vessel_departures.keys():
+			prev_finish_time = 0
+			for d in vessel_departures[vessel_id]:
+
+				# Добавление ребра А-А
+				interval = corrected_time[d] - max(d.vessel.time_start, prev_finish_time)
+				if interval > 0:
+					# d1 = vessel_port_example[vessel_id, d.edge.port_from.id]
+					d1 = copy.deepcopy(d)
+					d1.speed = 0
+					d1.edge.avg_norm = 21
+					d1.is_icebreaker_assistance = 0
+					d1.edge.port_to = d1.edge.port_from
+
+					d1.time = corrected_time[d] - interval
+					d1.duration = interval
+					self.model.departure_results.append(d1)
+
+				 
+				d.speed = corrected_speed[d]
+				d.duration = corrected_duration[d]
+				d.time = corrected_time[d]
+				self.model.departure_results.append(d)
+
+				prev_finish_time = d.time + d.duration
+
+		# for d in self.model.departure_result.keys():
+		# 	d.speed = corrected_speed[d]
+		# 	d.duration = corrected_duration[d]
+		# 	d.time = corrected_time[d]
+		# 	self.model.departure_results.append(d)
+			
+
+		### Таблица Locations
+		self.model.stop_place_result = dict()
+		self.model.stop_place_results = list()
+		for l in self.input.locations:
+			self.model.stop_place_result[l] = value(self.model.stop_place[l])
+			if value(self.model.stop_place[l]) > 0.5:
+				try:
+					l.time = max(corrected_time[d] + corrected_duration[d] for d in vessel_departures[l.vessel.id])
+				except:
+					# почему-то судно с vessel.id = 14 попадает сюда, хотя его нет в расчете
+					pass
+				self.model.stop_place_results.append(l)
+
+		return
+
 

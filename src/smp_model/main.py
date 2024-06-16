@@ -19,6 +19,7 @@ def run_model(
     )
     model = Model(input)
     model.solve_model()
+    model.correct_results()
     model.output.create_output()
 
 
