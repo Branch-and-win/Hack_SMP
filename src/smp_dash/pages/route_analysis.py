@@ -156,7 +156,7 @@ def update_summary_table(scenario_name, vessel_name):
         columns=[{"name": i, "id": i} for i in dash_data.detailed_stat_df.columns],
         data=dash_data.detailed_stat_df[
             (dash_data.detailed_stat_df['scenario_name'] == scenario_name)
-            & (dash_data.detailed_stat_df['vessel_name'] == vessel_name)
+            & (dash_data.detailed_stat_df['название судна'] == vessel_name)
             ].to_dict('records'),
         # filter_action="native",
         page_size=5,
