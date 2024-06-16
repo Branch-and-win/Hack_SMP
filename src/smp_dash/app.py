@@ -49,4 +49,4 @@ with app.app_context():
     dash_app.layout = dash.page_container
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0')
