@@ -411,7 +411,3 @@ class ModelDash:
         with pd.ExcelWriter(os.path.join(output_path, 'statistics.xlsx')) as writer:
             summary_df.to_excel(writer, sheet_name='Общая статистика')
             partial_statistic_df.to_excel(writer, sheet_name='Частная статистика', index=False)
-
-df = pd.read_excel(r'D:\PycharmProjects\SMP\data\scenarios\base\output\departures.xlsx')
-
-ModelDash.collect_kpi(r'D:\PycharmProjects\SMP\data\scenarios\base\output',df)
