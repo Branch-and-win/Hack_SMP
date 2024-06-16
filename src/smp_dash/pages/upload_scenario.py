@@ -7,7 +7,7 @@ from src.smp_dash.pages.home import get_sidebar
 def layout():
     layout = [
         get_sidebar(__name__),
-        html.H1(children='СМП', style={'textAlign': 'center'}),
+        html.H1(children='Дашборд сервиса по планированию маршрутов атомных ледоколов по СМП', style={'textAlign': 'center'}, className='my-head'),
         html.Div(
             className="upload-upper-menu",
             children=[

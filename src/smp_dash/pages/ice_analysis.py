@@ -44,7 +44,7 @@ def layout():
     layout = [
         get_sidebar(__name__),
         html.Div([
-            html.H1(children='СМП', style={'textAlign': 'center'}),
+            html.H1(children='Дашборд сервиса по планированию маршрутов атомных ледоколов по СМП', style={'textAlign': 'center'}, className='my-head'),
 
             html.Div(
                 id="ice-upper-container",

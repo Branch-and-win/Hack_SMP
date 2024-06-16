@@ -116,20 +116,34 @@ class ParentScenario(Scenario):
         Объединение результатов последовательных запусков дочерних сценариев
         """
         all_departures_list = []
+        all_planning_start_dates_list = []
+        all_vessel_best_routes_list = []
         for child_scenario in self.child_scenario_chain:
             if not os.path.exists(os.path.join(child_scenario.output_folder_path, 'departures.xlsx')):
                 raise FileNotFoundError(f'Не найден выходной файл departures.xlsx в сценарии {child_scenario.name}.')
 
             with pd.ExcelFile(os.path.join(child_scenario.output_folder_path, 'departures.xlsx')) as reader:
                 child_scenario_departures_df = pd.read_excel(reader, sheet_name='Sheet1')
+            with pd.ExcelFile(os.path.join(child_scenario.output_folder_path, 'start_planning_dates.xlsx')) as reader:
+                planning_start_dates_df = pd.read_excel(reader, sheet_name='Sheet1')
+            with pd.ExcelFile(os.path.join(child_scenario.output_folder_path, 'vessel_best_routes.xlsx')) as reader:
+                vessel_best_routes_df = pd.read_excel(reader, sheet_name='Sheet1')
             child_scenario_departures_df = child_scenario_departures_df[
                 (child_scenario_departures_df['time_from_dt'] < child_scenario.config.end_date_dt)
                 | (child_scenario_departures_df['time_to_dt'] <= child_scenario.config.end_date_dt)
             ]
             all_departures_list.append(child_scenario_departures_df)
+            all_planning_start_dates_list.append(planning_start_dates_df)
+            all_vessel_best_routes_list.append(vessel_best_routes_df)
         all_departures_df = pd.concat(all_departures_list)
+        all_planning_start_dates_df = pd.concat(all_planning_start_dates_list)
+        all_vessel_best_routes_df = pd.concat(all_vessel_best_routes_list)
         with pd.ExcelWriter(os.path.join(self.output_folder_path, 'departures.xlsx')) as writer:
             all_departures_df.to_excel(writer)
+        with pd.ExcelWriter(os.path.join(self.output_folder_path, 'start_planning_dates.xlsx')) as writer:
+            all_planning_start_dates_df.to_excel(writer)
+        with pd.ExcelWriter(os.path.join(self.output_folder_path, 'vessel_best_routes.xlsx')) as writer:
+            all_vessel_best_routes_df.to_excel(writer)
 
     @classmethod
     def create_scenario(cls, scenario_folder_path: str, scenario_name: str):
@@ -151,7 +165,7 @@ class ParentScenario(Scenario):
 
 
 if __name__ == '__main__':
-    scenario_name = 'base'
+    scenario_name = 'base_parent'
     base_parent_scenario = ParentScenario.create_scenario(os.path.join('.', 'data', 'scenarios', scenario_name), scenario_name)
     base_parent_scenario.optimize()
 

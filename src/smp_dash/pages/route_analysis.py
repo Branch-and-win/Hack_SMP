@@ -41,7 +41,7 @@ def layout():
     layout = [
         get_sidebar(__name__),
         html.Div([
-            html.H1(children='СМП', style={'textAlign': 'center'}),
+            html.H1(children='Дашборд сервиса по планированию маршрутов атомных ледоколов по СМП', style={'textAlign': 'center'}, className='my-head'),
                 # html.Div(className='parent', children=[
                 #     dcc.Graph(id='plot1', className='plot'),
                 #     html.Div(className='spacer'),
@@ -162,7 +162,7 @@ def update_summary_table(scenario_name, vessel_name):
         style_table={'overflowX': 'auto'},
         style_cell={
             "background-color": "#242a3b",
-            "color": "#7b7d8d",
+            "color": "white",
             'height': 'auto',
             'whiteSpace': 'normal',
             'minWidth': '90px', 'width': '90px', 'maxWidth': '90px',

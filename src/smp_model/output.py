@@ -47,6 +47,11 @@ class ModelOutput:
                 'is_icebreaker',
             ]
         )
+        self.start_planning_dates_df = pd.DataFrame(
+            columns=[
+                'date',
+            ]
+        )
 
     def create_output(self):
         print('Подготовка выходных данных')
@@ -92,8 +97,14 @@ class ModelOutput:
 
         self.result_locations_df = pd.DataFrame(result_locations, columns=self.result_locations_df.columns)
 
+        self.start_planning_dates_df = pd.DataFrame([self.input.config.start_date], columns=self.start_planning_dates_df.columns)
+
         with pd.ExcelWriter(os.path.join(self.input.output_folder_path, 'departures.xlsx')) as writer:
             self.result_departures_df.to_excel(writer)
         with pd.ExcelWriter(os.path.join(self.input.output_folder_path, 'locations.xlsx')) as writer:
             self.result_locations_df.to_excel(writer)
+        with pd.ExcelWriter(os.path.join(self.input.output_folder_path, 'start_planning_dates.xlsx')) as writer:
+            self.start_planning_dates_df.to_excel(writer)
+        with pd.ExcelWriter(os.path.join(self.input.output_folder_path, 'vessel_best_routes.xlsx')) as writer:
+            self.input.vessel_best_routes_df.to_excel(writer)
         return

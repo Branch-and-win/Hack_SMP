@@ -30,6 +30,8 @@ class ModelInput:
         self.output_folder_path: str = output_folder_path
         self.config: ModelConfig = model_config
 
+        self.vessel_best_routes_df = pd.DataFrame
+
         # self.hours_in_interval: int = hours_in_interval
         # self.hours_in_horizon: int = hours_in_horizon
         # self.start_date: datetime = start_date
@@ -83,6 +85,7 @@ class ModelInput:
                     p_from.add_min_dist(p_to, 300)
 
     def fill_best_routes(self):
+        vessel_best_routes = []
         for v in self.vessels:
             if v.is_icebreaker:
                 continue
@@ -96,11 +99,17 @@ class ModelInput:
                 for best_route in best_routes
                 for port_start, port_end in zip(best_route[:-1], best_route[1:])
             }
+            for k, best_route in enumerate(best_routes):
+                for port in best_route:
+                    vessel_best_routes.append((self.config.start_date, v.name, k, port.name, port.latitude, port.longitude))
             possible_ports = set()
             for best_route in best_routes:
                 for port in best_route:
                     possible_ports.add(port)
             v.fill_possible_edges(possible_edges, possible_ports)
+        self.vessel_best_routes_df = pd.DataFrame(
+            vessel_best_routes, columns=["date", "vessel_name", "k", "port_name", "latitude", "longitude"],
+        )
 
     def create_main_graph(self) -> None:
         vessel_type_w_max_speed = {v.type_max_speed: v.type_max_speed_str for v in self.vessels}

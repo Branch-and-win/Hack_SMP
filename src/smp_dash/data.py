@@ -1,7 +1,10 @@
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import os
 import plotly.express as px
+import plotly.graph_objects as go
 
 
 class DashData:
@@ -32,6 +35,8 @@ class DashData:
         self.result_departures_df = pd.DataFrame(columns=['scenario_name'])
         self.summary_stat_df = pd.DataFrame(columns=['scenario_name'])
         self.detailed_stat_df = pd.DataFrame(columns=['scenario_name'])
+        self.start_planning_dates_df = pd.DataFrame(columns=['scenario_name'])
+        self.vessel_best_routes_df = pd.DataFrame(columns=['scenario_name'])
 
         self.base_map_fig = {}
         self.ports_dict = {}
@@ -59,11 +64,11 @@ class DashData:
         ]
 
     def fill_additional_data(self, scenario_name):
-        self.ports_dict[scenario_name] = (
-            self.ports_df[self.ports_df['scenario_name'] == scenario_name]
-                .set_index(['point_id'])
-                .to_dict(orient='index')
-        )
+        # self.ports_dict[scenario_name] = (
+        #     self.ports_df[self.ports_df['scenario_name'] == scenario_name]
+        #         .set_index(['point_id'])
+        #         .to_dict(orient='index')
+        # )
         self.base_map_fig[scenario_name] = self.create_base_map_figure(scenario_name)
         self.create_velocity_objects_for_plot(scenario_name)
 
@@ -83,7 +88,27 @@ class DashData:
         with pd.ExcelFile(os.path.join(output_folder_path, 'statistics.xlsx')) as reader:
             summary_stat_df = pd.read_excel(reader, sheet_name='Общая статистика')
             detailed_stat_df = pd.read_excel(reader, sheet_name='Частная статистика')
+        with pd.ExcelFile(os.path.join(output_folder_path, 'start_planning_dates.xlsx')) as reader:
+            start_planning_dates_df = pd.read_excel(reader, sheet_name='Sheet1')
+        with pd.ExcelFile(os.path.join(output_folder_path, 'vessel_best_routes.xlsx')) as reader:
+            vessel_best_routes_df = pd.read_excel(reader, sheet_name='Sheet1')
+
         self.add_edge_type(result_departures_df)
+        self.ports_dict[scenario_name] = (
+            ports_df
+                .set_index(['point_id'])
+                .to_dict(orient='index')
+        )
+
+        vessels_df['start_point_lat'] = vessels_df.apply(lambda x: self.ports_dict[scenario_name][x.start_point_id]['latitude'], axis=1)
+        vessels_df['start_point_lon'] = vessels_df.apply(lambda x: self.ports_dict[scenario_name][x.start_point_id]['longitude'], axis=1)
+        icebreakers_df['start_point_lat'] = icebreakers_df.apply(lambda x: self.ports_dict[scenario_name][x.start_point_id]['latitude'], axis=1)
+        icebreakers_df['start_point_lon'] = icebreakers_df.apply(lambda x: self.ports_dict[scenario_name][x.start_point_id]['longitude'], axis=1)
+        vessels_df['end_point_lat'] = vessels_df.apply(lambda x: self.ports_dict[scenario_name][x.end_point_id]['latitude'], axis=1)
+        vessels_df['end_point_lon'] = vessels_df.apply(lambda x: self.ports_dict[scenario_name][x.end_point_id]['longitude'], axis=1)
+        vessels_df['text_start_point'] = 'Начальная точка'
+        vessels_df['text_end_point'] = 'Конечная точка'
+        icebreakers_df['text_start_point'] = 'Начальная точка'
 
         ports_df['scenario_name'] = scenario_name
         edges_df['scenario_name'] = scenario_name
@@ -93,6 +118,11 @@ class DashData:
         result_departures_df['scenario_name'] = scenario_name
         summary_stat_df['scenario_name'] = scenario_name
         detailed_stat_df['scenario_name'] = scenario_name
+        start_planning_dates_df['scenario_name'] = scenario_name
+        vessel_best_routes_df['scenario_name'] = scenario_name
+
+        # vessel_best_routes_df['date'] = datetime.strptime('27-02-2022', '%d-%m-%Y')
+        vessel_best_routes_df['date_str'] = vessel_best_routes_df['date'].apply(lambda x: x.strftime('%d-%m-%Y'))
 
         result_departures_df.sort_values(by=['time_from_dt'], inplace=True)
 
@@ -104,6 +134,8 @@ class DashData:
         self.result_departures_df = pd.concat([self.result_departures_df[self.result_departures_df['scenario_name'] != scenario_name], result_departures_df])
         self.summary_stat_df = pd.concat([self.summary_stat_df[self.summary_stat_df['scenario_name'] != scenario_name], summary_stat_df])
         self.detailed_stat_df = pd.concat([self.detailed_stat_df[self.detailed_stat_df['scenario_name'] != scenario_name], detailed_stat_df])
+        self.start_planning_dates_df = pd.concat([self.start_planning_dates_df[self.start_planning_dates_df['scenario_name'] != scenario_name], start_planning_dates_df])
+        self.vessel_best_routes_df = pd.concat([self.vessel_best_routes_df[self.vessel_best_routes_df['scenario_name'] != scenario_name], vessel_best_routes_df])
 
     def upload_scenario(self, scenario_name: str):
         self.read_scenario_data_from_folder(scenario_name)
@@ -278,7 +310,7 @@ class DashData:
                 scenario_ports_dict[row.port_from_id]['latitude']
             )
             vessel_route_port_list.append(
-                (port_from_lon, port_from_lat)
+                (port_from_lon, port_from_lat, row.integer_ice, row.speed, row.max_speed)
             )
             if i == len(vessel_route_df) - 1:
                 port_to_lon, port_to_lat = (
@@ -293,14 +325,84 @@ class DashData:
             columns=[
                 'longitude',
                 'latitude',
+                'integer_ice',
+                'speed',
+                'max_speed',
             ]
         )
         fig.add_traces(
-            px.line_mapbox(vessel_route_port_df, lat="latitude", lon="longitude").data
+            px.line_mapbox(vessel_route_port_df, lat="latitude", lon="longitude", hover_data=['integer_ice', 'speed', 'max_speed']).data
         )
         line_num = len(fig['data']) - 1
         fig['data'][line_num]['line']['width'] = 5
         fig['data'][line_num]['line']['color'] = 'red'
+
+        self.add_start_stop_to_fig(fig, scenario_name, vessel_name)
+
+    def get_vessel_best_routes(self, scenario_name, vessel_name, date_str, k):
+        color_map = {
+            0: 'green',
+            1: 'yellow',
+            2: 'red',
+            3: 'black',
+            4: 'blue',
+        }
+        fig = go.Figure(dash_data.base_map_fig[scenario_name])
+        if k != 'Все':
+            vessel_best_routes_df = self.vessel_best_routes_df[
+                (self.vessel_best_routes_df['vessel_name'] == vessel_name)
+                & (self.vessel_best_routes_df['scenario_name'] == scenario_name)
+                & (self.vessel_best_routes_df['date_str'] == date_str)
+                & (self.vessel_best_routes_df['k'] == k)
+            ]
+        else:
+            vessel_best_routes_df = self.vessel_best_routes_df[
+                (self.vessel_best_routes_df['vessel_name'] == vessel_name)
+                & (self.vessel_best_routes_df['scenario_name'] == scenario_name)
+                & (self.vessel_best_routes_df['date_str'] == date_str)
+            ]
+        vessel_best_route_by_k_df = vessel_best_routes_df.groupby('k')
+        for k in vessel_best_route_by_k_df.groups.keys():
+            best_route_df = vessel_best_route_by_k_df.get_group(k)
+            fig.add_traces(
+                px.line_mapbox(best_route_df, lat="latitude", lon="longitude").data
+            )
+            line_num = len(fig['data']) - 1
+            fig['data'][line_num]['line']['width'] = 4
+            fig['data'][line_num]['line']['color'] = color_map.get(k, 'grey')
+        self.add_start_stop_to_fig(fig, scenario_name, vessel_name)
+        return fig
+
+    def add_start_stop_to_fig(self, fig, scenario_name, vessel_name):
+        vessel_df = self.vessels_df[
+            (self.vessels_df['scenario_name'] == scenario_name)
+            & (self.vessels_df['vessel_name'] == vessel_name)
+        ]
+        if len(vessel_df):
+            fig.add_traces(
+                px.scatter_mapbox(vessel_df, lat="start_point_lat", lon="start_point_lon", hover_data="text_start_point").data
+            )
+            line_num = len(fig['data']) - 1
+            fig['data'][line_num]['marker']['size'] = 15
+            fig['data'][line_num]['marker']['color'] = 'green'
+
+            fig.add_traces(
+                px.scatter_mapbox(vessel_df, lat="end_point_lat", lon="end_point_lon", hover_data="text_end_point").data
+            )
+            line_num = len(fig['data']) - 1
+            fig['data'][line_num]['marker']['size'] = 15
+            fig['data'][line_num]['marker']['color'] = 'black'
+        else:
+            icebreakers_df = self.icebreakers_df[
+                (self.icebreakers_df['scenario_name'] == scenario_name)
+                & (self.icebreakers_df['vessel_name'] == vessel_name)
+            ]
+            fig.add_traces(
+                px.scatter_mapbox(icebreakers_df, lat="start_point_lat", lon="start_point_lon", hover_data="text_start_point").data
+            )
+            line_num = len(fig['data']) - 1
+            fig['data'][line_num]['marker']['size'] = 15
+            fig['data'][line_num]['marker']['color'] = 'green'
 
 
 dash_data = DashData()

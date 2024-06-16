@@ -3,9 +3,9 @@ from dash import Dash
 import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
 from flask import Flask
-from src.smp_dash.pages import home, ice_analysis, route_analysis, upload_scenario
+from src.smp_dash.pages import home, ice_analysis, route_analysis, upload_scenario, best_route_analysis
 
-load_figure_template(["cyborg", "darkly"])
+load_figure_template(["darkly"])
 # dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css"
 
 app = Flask(__name__, instance_relative_config=True)
@@ -36,6 +36,13 @@ dash.register_page(
     title='Анализ состояния льда',
     name='Анализ состояния льда',
     layout=ice_analysis.layout
+)
+dash.register_page(
+    'pages.best_route_analysis',
+    path='/best_route_analysis',
+    title='Анализ лучших маршрутов',
+    name='Анализ лучших маршрутов',
+    layout=best_route_analysis.layout
 )
 dash.register_page(
     'pages.upload_scenario',

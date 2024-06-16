@@ -16,7 +16,7 @@ body {
 }
 
 #sidebar {
-  width: 150px;
+  width: 190px;
   background: #1d1a1a;
   color: #fff;
   -webkit-transition: all .3s;
@@ -33,7 +33,7 @@ body {
 
 @media(max-width: 1400px) {
   #sidebar {
-      margin-left:-150px
+      margin-left:-190px
   }
 
   #sidebar.active {
@@ -129,7 +129,11 @@ body {
 
 #home-upper-container, #home-lower-container, #ice-upper-container, #ice-lower-container, #route-upper-container, #route-lower-container {
   margin: 2rem 5rem;
-  margin-left: 150px;
+  margin-left: 190px;
+}
+
+.my-head {
+  margin-left: 190px;
 }
 
 .route-upper-block {
@@ -143,11 +147,12 @@ body {
 
 .my-route-upper-container-left{
     display: flex;
-    width: 30%
+    width: 20%
 }
 .my-route-upper-container-right{
     display: flex;
-    width: 50%
+    width: 60%;
+    margin-right: 300px;
 }
 
 @media screen and (max-width: 1200px) {
@@ -223,16 +228,16 @@ span.Select-clear-zone {
 
 .table-upper {
   height: 200px;
-  overflow: scroll;
+  overflow-x: scroll;
 
 }
 .table-container {
-  margin-left: 170px;
-  width: 90%;
+  margin-left: 210px;
+  width: 87%;
 }
 
 .upload-upper-menu {
-  margin-left: 170px;
+  margin-left: 210px;
 }
 #upload-log-text {
   overflow: scroll;
@@ -258,8 +263,8 @@ span.Select-clear-zone {
 
 #geo-map-loading-outer {
   height: 800px;
-  width: 90%;
-  margin-left: 170px;
+  width: 87%;
+  margin-left: 210px;
 }
 
 #geo-map {
@@ -272,11 +277,6 @@ span.Select-clear-zone {
 
 #select-metric-outer, #region-select-outer {
   display: inline-block;
-}
-
-#cost-stats-table, #procedure-stats-table {
-  overflow: scroll;
-  height: 10rem;
 }
 
 .section-title, #map-title {
@@ -333,6 +333,7 @@ span.Select-clear-zone {
 
   #home-upper-container, #ice-upper-container, #route-upper-container {
     margin: 1rem;
+    overflow: hidden;
   }
 
   #upper-left > div > label {
