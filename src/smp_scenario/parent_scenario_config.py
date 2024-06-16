@@ -13,6 +13,8 @@ class ParentScenarioConfig(ScenarioConfig):
         'duration_days',
         'interval_hours',
         'cross_days',
+        'timelimit',
+        'k_bests',
     )
 
     def __init__(
@@ -22,8 +24,10 @@ class ParentScenarioConfig(ScenarioConfig):
             duration_days: int,
             interval_hours: int,
             cross_days: int,
+            timelimit: int,
+            k_bests: int,
     ):
-        super().__init__(start_date, duration_days, interval_hours, cross_days)
+        super().__init__(start_date, duration_days, interval_hours, cross_days, timelimit, k_bests)
         # Дата окончания планирования родительского сценария
         self.end_date = end_date
 
@@ -33,12 +37,15 @@ class ParentScenarioConfig(ScenarioConfig):
 
     @classmethod
     def create_from_dict(cls, config_dict: dict) -> 'ParentScenarioConfig':
+        print(config_dict)
         return cls(
             config_dict['start_date'],
             config_dict['end_date'],
             config_dict['duration_days'],
             config_dict['interval_hours'],
             config_dict['cross_days'],
+            config_dict['timelimit'],
+            config_dict['k_bests'],
         )
 
     def get_child_model_config(self, model_start_date_dt: datetime) -> ModelConfig:
@@ -47,4 +54,6 @@ class ParentScenarioConfig(ScenarioConfig):
             hours_in_horizon=self.interval_hours * self.duration_days * 24,
             hours_in_cross=self.interval_hours * self.cross_days * 24,
             start_date=model_start_date_dt,
+            timelimit=self.timelimit,
+            k_bests=self.k_bests,
         )

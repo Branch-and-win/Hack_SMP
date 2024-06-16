@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -99,6 +99,17 @@ class DashData:
                 .set_index(['point_id'])
                 .to_dict(orient='index')
         )
+
+        pd.options.mode.chained_assignment = None
+        vessel_ends_df = result_departures_df[
+            (result_departures_df['port_to'] == result_departures_df['target_port'])
+            & ~(result_departures_df['is_icebreaker'] == True)
+            ]
+        vessel_ends_df['edge_type'] = 'Порт назначения'
+        vessel_ends_df['port_from'] = vessel_ends_df['port_to']
+        vessel_ends_df['time_from_dt'] = vessel_ends_df['time_to_dt']
+        vessel_ends_df['time_to_dt'] = vessel_ends_df['time_to_dt'].apply(lambda x: x + timedelta(hours=3))
+        result_departures_df = pd.concat([result_departures_df, vessel_ends_df])
 
         vessels_df['start_point_lat'] = vessels_df.apply(lambda x: self.ports_dict[scenario_name][x.start_point_id]['latitude'], axis=1)
         vessels_df['start_point_lon'] = vessels_df.apply(lambda x: self.ports_dict[scenario_name][x.start_point_id]['longitude'], axis=1)

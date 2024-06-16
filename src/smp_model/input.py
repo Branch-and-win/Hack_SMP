@@ -92,7 +92,7 @@ class ModelInput:
             _, best_routes = self.main_graph.k_shortest_paths(
                 v.port_start,
                 v.port_end,
-                k=5,
+                k=self.config.k_bests,
             )
             possible_edges = {
                 self.edges_dict[port_start.id, port_end.id]

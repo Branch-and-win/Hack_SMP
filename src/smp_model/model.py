@@ -140,10 +140,10 @@ class Model:
 		solver = SolverFactory(solver_name)
 		# self.model.write('1.lp', io_options={'symbolic_solver_labels': True})
 		if solver_name == 'appsi_highs':
-			solver.options['time_limit'] = 3600
+			solver.options['time_limit'] = self.input.config.timelimit
 			solve_results = solver.solve(self.model, tee=True)
 		else:
-			solver.options['TimeLimit'] = 3600
+			solver.options['TimeLimit'] = self.input.config.timelimit
 			solver.options['Method'] = 3
 			solve_results = solver.solve(self.model, tee=True, warmstart=True)
 

@@ -15,9 +15,11 @@ class ScenarioConfig:
         'duration_days',
         'interval_hours',
         'cross_days',
+        'timelimit',
+        'k_bests',
     )
 
-    def __init__(self, start_date, duration_days, interval_hours, cross_days):
+    def __init__(self, start_date, duration_days, interval_hours, cross_days, timelimit, k_bests):
         # Дата начала построения графика движения
         self.start_date: str = start_date
         # Количество дней планирования
@@ -26,6 +28,9 @@ class ScenarioConfig:
         self.interval_hours: int = interval_hours
         # Количество доп. дней планирования
         self.cross_days: int = cross_days
+
+        self.timelimit: int = timelimit
+        self.k_bests: int = k_bests
 
     @classmethod
     def create_from_dict(cls, config_dict: dict) -> 'ScenarioConfig':
@@ -37,6 +42,8 @@ class ScenarioConfig:
             config_dict['duration_days'],
             config_dict['interval_hours'],
             config_dict['cross_days'],
+            config_dict['timelimit'],
+            config_dict['k_bests'],
         )
 
     @property
@@ -78,4 +85,10 @@ class ScenarioConfig:
             hours_in_horizon=self.interval_hours * self.duration_days * 24,
             hours_in_cross=self.interval_hours * self.cross_days * 24,
             start_date=self.start_date_dt,
+            timelimit=self.timelimit,
+            k_bests=self.k_bests,
         )
+
+
+if __name__ == '__main__':
+    ScenarioConfig.create_from_json(os.path.join('.', 'data', 'scenarios', 'base', 'input', 'config.json'))

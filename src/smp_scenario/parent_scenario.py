@@ -72,6 +72,8 @@ class ParentScenario(Scenario):
                 duration_days=int((min_date_with_velocity - first_planning_date).days),
                 interval_hours=self.config.interval_hours,
                 cross_days=self.config.cross_days,
+                timelimit=self.config.timelimit,
+                k_bests=self.config.k_bests
             )
             scenario = Scenario(
                 name=child_scenario_name,
@@ -92,6 +94,8 @@ class ParentScenario(Scenario):
                 duration_days=self.config.duration_days,
                 interval_hours=self.config.interval_hours,
                 cross_days=self.config.cross_days,
+                timelimit=self.config.timelimit,
+                k_bests=self.config.k_bests
             )
             scenario = Scenario(
                 name=child_scenario_name,

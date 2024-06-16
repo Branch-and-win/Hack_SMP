@@ -23,4 +23,4 @@ COPY . ./
 # RUN apk add --no-cache bash
 
 #CMD gunicorn -b 0.0.0.0:5021 src.smp_scenario.app:app
-CMD gunicorn -b 0.0.0.0:5021 src.smp_scenario.app:app --worker-class uvicorn.workers.UvicornWorker --timeout 90
+CMD gunicorn -b 0.0.0.0:5021 src.smp_scenario.app:app --worker-class uvicorn.workers.UvicornWorker --timeout 0

@@ -3,5 +3,7 @@
     "end_date": "5-05-2022",
     "duration_days": 7,
     "cross_days": 5,
-    "interval_hours": 1
+    "interval_hours": 1,
+    "timelimit": 900,
+    "k_bests": 5
 }
