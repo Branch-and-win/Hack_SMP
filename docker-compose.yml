@@ -6,9 +6,9 @@ services:
       - ./:/app
     ports:
      - "5021:5021"
-  app_dash:
-    build: ./src/smp_dash
-    volumes:
-      - ./:/app
-    ports:
-      - "5020:5020"
+#  app_dash:
+#    build: ./src/smp_dash
+#    volumes:
+#      - ./:/app
+#    ports:
+#      - "5020:5020"
