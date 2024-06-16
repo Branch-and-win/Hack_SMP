@@ -1,6 +1,6 @@
 import os
 
-from src.smp_dash.main import ModelDash
+from src.smp_dash.main_old import ModelDash
 from src.smp_model.input import ModelInput
 from src.smp_model.model import Model
 from src.smp_model.model_config import ModelConfig

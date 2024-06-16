@@ -5,7 +5,7 @@ from typing import Union, List
 
 import pandas as pd
 
-from src.smp_dash.main import ModelDash
+from src.smp_dash.main_old import ModelDash
 from src.smp_model.main import run_model
 from src.smp_scenario.parent_scenario_config import ParentScenarioConfig
 from src.smp_scenario.scenario_config import ScenarioConfig

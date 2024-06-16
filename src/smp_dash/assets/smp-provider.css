@@ -1,0 +1,377 @@
+.container.scalable {
+  width: 100%;
+  max-width: none;
+}
+
+/* Remove Undo
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+._dash-undo-redo {
+  display: none;
+}
+
+body {
+  background-color: #171b26;
+  color: #9fa6b7;
+  overflow-x: hidden;
+}
+
+#sidebar {
+  width: 150px;
+  background: #1d1a1a;
+  color: #fff;
+  -webkit-transition: all .3s;
+  -o-transition: all .3s;
+  transition: all .3s;
+  position: fixed;
+  height: 100vh;
+  z-index: 9;
+}
+
+#sidebar.active .custom-menu {
+  margin-right: -50px
+}
+
+@media(max-width: 1400px) {
+  #sidebar {
+      margin-left:-150px
+  }
+
+  #sidebar.active {
+      margin-left: 0
+  }
+
+  #sidebar .custom-menu {
+      margin-right: -60px!important;
+      bottom: 10px!important
+  }
+}
+@media(min-width: 1400px) {
+  #sidebar .custom-menu {
+      display: none !important;
+  }
+}
+
+#sidebar .nav-item a.nav-link> {
+  padding: 10px 0;
+  display: block;
+  color: rgba(255,255,255,.6);
+  border-bottom: 1px solid rgba(255,255,255,.1)
+}
+
+#sidebar .nav-item a.nav-link:hover:not(.active) {
+  background-color: #fff;
+  color: #1d1a1a !important;
+}
+#sidebar .nav-item a.nav-link.active {
+  background-color: #0076BA;
+  color: #fff;
+}
+
+#sidebar .custom-menu {
+  display: inline-block;
+  position: absolute;
+  bottom: 20px;
+  right: 0;
+  margin-right: -20px;
+  -webkit-transition: .3s;
+  -o-transition: .3s;
+  transition: .3s;
+}
+
+@media(prefers-reduced-motion:reduce) {
+  #sidebar .custom-menu {
+      -webkit-transition: none;
+      -o-transition: none;
+      transition: none
+  }
+}
+
+#sidebar .custom-menu .btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+#sidebar .custom-menu .btn.btn-primary {
+  background: #0bc675;
+  border-color: #0bc675;
+}
+
+#sidebar .custom-menu .btn.btn-primary:hover {
+  background: #0076BA!important;
+  border-color: #0076BA!important
+}
+
+
+.banner {
+  height: 5rem;
+  margin-bottom: 1rem;
+  padding: 0rem 5rem 0rem;
+  display: flex;
+  flex-direction: row nowrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.banner h6 {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.banner Img {
+  position: relative;
+  height: 2rem;
+  width: auto;
+}
+
+#home-upper-container, #home-lower-container, #ice-upper-container, #ice-lower-container, #route-upper-container, #route-lower-container {
+  margin: 2rem 5rem;
+  margin-left: 150px;
+}
+
+.route-upper-block {
+  display: flex;
+  flex-direction: row;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+.my-route-upper-container-left{
+    display: flex;
+    width: 30%
+}
+.my-route-upper-container-right{
+    display: flex;
+    width: 50%
+}
+
+@media screen and (max-width: 1200px) {
+  .route-upper-block{
+    flex-direction: column;
+  }
+  .my-route-upper-container-right{
+    width: 100%
+  }
+  .my-route-upper-container-left{
+    width: 100%
+  }
+}
+#upper-left, #geo-map-outer {
+  padding: 1rem 2rem 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.control-row-1 {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+#state-select-outer, #select-metric-outer {
+  width: 45%;
+}
+
+#upper-left > div > label {
+  font-weight: bold;
+  margin: 20px 0px;
+}
+
+*.Select-control, Select--single, .Select-multi-value-wrapper, .Select-value, .Select-value-label {
+  background-color: #171b26 !important;
+  color: #7b7d8d !important;
+}
+
+.Select-control, .Select-menu-outer {
+  border: 1px solid dimgrey !important;
+}
+
+span.Select-clear-zone {
+  display: none !important;
+}
+
+.Select-menu-outer, .Select-menu-outer div, .Select--multi {
+  background-color: #171b26 !important;
+  color: #7b7d8d !important;
+}
+
+.Select-menu-outer div:hover {
+  color: white !important;
+  cursor: pointer;
+}
+
+#region-select-all, #state-select-outer > label, #select-metric-outer > label {
+  margin-bottom: 2px;
+  color: #7b7d8d;
+}
+
+.dash-spreadsheet-container .dash-spreadsheet-inner th, td {
+  text-align: center !important;
+  font-family: "Open Sans", sans-serif !important;
+  border-top-color: #171b26 !important;
+  border-bottom-color: #171b26 !important;
+  border-left-color: #171b26 !important;
+  border-right-color: #171b26 !important;
+  font-size: 11px;
+}
+
+.table-upper {
+  height: 200px;
+  overflow: scroll;
+
+}
+.table-container {
+  margin-left: 170px;
+  width: 90%;
+}
+
+.upload-upper-menu {
+  margin-left: 170px;
+}
+#upload-log-text {
+  overflow: scroll;
+}
+/*.table-upper .table-lower {*/
+/*  font-weight: bold;*/
+/*  margin: 20px 0px;*/
+/*}*/
+
+#home-lower-container {
+  border-top: 1px solid #1f2536;
+  height: 1800px;
+}
+
+#home-graph-gant {
+  height: 800px;
+  min-width: 1200px;
+}
+#route-graph-gant {
+  height: 300px;
+  min-width: 1200px;
+}
+
+#geo-map-loading-outer {
+  height: 800px;
+  width: 90%;
+  margin-left: 170px;
+}
+
+#geo-map {
+  height: 55rem;
+}
+
+/*#home-graph-gant {*/
+/*  margin: -300px 0px -200px 0px;*/
+/*}*/
+
+#select-metric-outer, #region-select-outer {
+  display: inline-block;
+}
+
+#cost-stats-table, #procedure-stats-table {
+  overflow: scroll;
+  height: 10rem;
+}
+
+.section-title, #map-title {
+  font-size: 16px;
+  font-weight: bold;
+  display: block;
+}
+
+.mapboxgl-canvas,
+.mapboxgl-map {
+  min-width: 100%;
+}
+
+/*
+  ##Device = Most of the Smartphones Mobiles (Portrait)
+  */
+
+@media only screen and (max-width: 750px) {
+  .control-row-1 {
+    flex-direction: column;
+  }
+
+  #state-select-outer, #select-metric-outer {
+    width: 100%;
+  }
+}
+
+@media only screen and (max-width: 750px) {
+  .control-row-ice {
+    flex-direction: column;
+  }
+}
+
+@media only screen and (max-width: 750px), (min-width: 768px) and (max-width: 1024px) {
+  body {
+    font-size: 14px;
+  }
+
+  .section-title, #map-title {
+    font-size: 14px;
+  }
+
+  .banner {
+    padding: 0rem 2rem;
+  }
+
+  .banner h6 {
+    font-size: 1.5rem;
+  }
+
+  .banner img {
+    height: 1.5rem;
+  }
+
+  #home-upper-container, #ice-upper-container, #route-upper-container {
+    margin: 1rem;
+  }
+
+  #upper-left > div > label {
+    font-weight: normal;
+    margin-bottom: 2px;
+  }
+
+  #upper-left, #geo-map-outer {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  #home-lower-container {
+    position: relative;
+  }
+
+  /* position procedure plot relative to outer div in mobile layout  */
+  #graph-gant {
+    position: absolute;
+  }
+
+  g.yaxislayer-above > g > text {
+    font-size: 10px !important;
+  }
+
+}
+
+/*
+  ##Device = Tablets, Ipads (portrait)
+  ##Screen = B/w 768px to 1024px
+*/
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+
+  #upper-left {
+    padding: 1rem 4rem;
+  }
+
+  #state-select-outer, #select-metric-outer {
+    width: 45%;
+  }
+
+}
