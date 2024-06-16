@@ -47,13 +47,17 @@ class ScenarioConfig:
     def end_date_dt(self) -> datetime:
         return self.start_date_dt + timedelta(days=self.duration_days)
 
+    @staticmethod
+    def json_to_dict(json_file_path: str) -> dict:
+        with open(json_file_path) as f:
+            return json.load(f)
+
     @classmethod
     def create_from_json(cls, json_file_path: str) -> 'ScenarioConfig':
         """
         Создание конфига из json файла
         """
-        with open(json_file_path) as f:
-            config = cls.create_from_dict(json.load(f))
+        config = cls.create_from_dict(cls.json_to_dict(json_file_path))
         return config
 
     def to_json(self, output_folder_path: str) -> None:

@@ -7,6 +7,14 @@ from src.smp_scenario.scenario_config import ScenarioConfig
 
 @dataclass
 class ParentScenarioConfig(ScenarioConfig):
+    __slots__ = (
+        'start_date',
+        'end_date',
+        'duration_days',
+        'interval_hours',
+        'cross_days',
+    )
+
     def __init__(
             self,
             start_date: str,

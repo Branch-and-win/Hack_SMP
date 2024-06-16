@@ -47,16 +47,16 @@ class Scenario:
         return self.ports_df.set_index('point_id').to_dict(orient='index')
 
     @classmethod
-    def create_base_scenario(cls, base_scenario_folder_path: str):
+    def create_scenario(cls, scenario_folder_path: str, scenario_name: str):
         """
         Создание базового сценария на основе данных из папки
         """
-        input_folder_path = os.path.join(base_scenario_folder_path, 'input')
+        input_folder_path = os.path.join(scenario_folder_path, 'input')
         config = ScenarioConfig.create_from_json(os.path.join(input_folder_path, 'config.json'))
 
         return cls(
-            name='base',
-            scenario_folder_path=base_scenario_folder_path,
+            name=scenario_name,
+            scenario_folder_path=scenario_folder_path,
             config=config,
         )
 
@@ -195,6 +195,9 @@ class Scenario:
             model_config,
         )
 
+    def optimize(self):
+        self.run_optimization()
+
     def create_dash(self, scenario_start_dates: List[datetime]):
         """
         Создание отчета
@@ -206,45 +209,10 @@ class Scenario:
         )
         dash.plot_results()
 
+
 if __name__ == '__main__':
-    base_scenario1 = Scenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent_5', 'child_scenarios', 'base_14'))
-    base_scenario2 = Scenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent_5', 'child_scenarios', 'base_21'))
-    # base_scenario2.update_input_from_output(base_scenario1)
+    scenario_name = 'base'
+    base_scenario = Scenario.create_scenario(os.path.join('.', 'data', 'scenarios', scenario_name), scenario_name)
 
-    a=1
-    base_scenario1.run_optimization()
-    base_scenario1.create_dash([base_scenario2.config.start_date_dt])
-
-    # scenario_name = 'test_1'
-    # scenario_folder_path = os.path.join('.', 'data', 'scenarios', scenario_name)
-    # config_dict = {
-    #     'start_date': '27-02-2022',
-    #     'duration_days': 7,
-    #     'interval_hours': 1,
-    #     'cross_days': 5,
-    # }
-    # config = ScenarioConfig.create_from_dict(config_dict)
-    # scenario1 = Scenario(
-    #     name=scenario_name,
-    #     scenario_folder_path=scenario_folder_path,
-    #     config=config,
-    # )
-    # scenario1.copy_input_from_other_scenario(base_scenario)
-    # scenario1.run_optimization()
-    # scenario1.create_dash()
-    #
-    # scenario_name = 'test_2'
-    # scenario_folder_path = os.path.join('.', 'data', 'scenarios', scenario_name)
-    # config_dict = {
-    #     'start_date': '07-03-2022',
-    #     'duration_days': 7,
-    #     'interval_hours': 1,
-    #     'cross_days': 5,
-    # }
-    # config = ScenarioConfig.create_from_dict(config_dict)
-    # scenario2 = Scenario(
-    #     name=scenario_name,
-    #     scenario_folder_path=scenario_folder_path,
-    #     config=config,
-    # )
-    # scenario2.create_input_from_prev_scenario(scenario1)
+    base_scenario.optimize()
+    base_scenario.create_dash([base_scenario.config.start_date_dt])

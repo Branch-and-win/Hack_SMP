@@ -132,23 +132,28 @@ class ParentScenario(Scenario):
             all_departures_df.to_excel(writer)
 
     @classmethod
-    def create_base_scenario(cls, base_scenario_folder_path: str):
+    def create_scenario(cls, scenario_folder_path: str, scenario_name: str):
         """
         Создание базового сценария на основе данных из папки
         """
-        input_folder_path = os.path.join(base_scenario_folder_path, 'input')
+        input_folder_path = os.path.join(scenario_folder_path, 'input')
         config = ParentScenarioConfig.create_from_json(os.path.join(input_folder_path, 'config.json'))
 
         return cls(
-            name='base',
-            scenario_folder_path=base_scenario_folder_path,
+            name=scenario_name,
+            scenario_folder_path=scenario_folder_path,
             config=config,
         )
 
+    def optimize(self):
+        self.run_chain_optimization()
+        self.concatenate_chain_optimization_results()
+
 
 if __name__ == '__main__':
-    base_parent_scenario = ParentScenario.create_base_scenario(os.path.join('.', 'data', 'scenarios', 'base_parent'))
-    base_parent_scenario.run_chain_optimization()
-    base_parent_scenario.concatenate_chain_optimization_results()
+    scenario_name = 'base'
+    base_parent_scenario = ParentScenario.create_scenario(os.path.join('.', 'data', 'scenarios', scenario_name), scenario_name)
+    base_parent_scenario.optimize()
+
     start_scenarios_dates = [child_scenario.config.start_date_dt for child_scenario in base_parent_scenario.child_scenario_chain]
     base_parent_scenario.create_dash(start_scenarios_dates)

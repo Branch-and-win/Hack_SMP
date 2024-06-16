@@ -206,16 +206,22 @@ class ModelInput:
         edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='edges')
         acc_vel_dict, acc_len_dict = {}, {}
         if os.path.isfile(os.path.join(self.input_folder_path, 'velocity_env.xlsx')):
-            velocity_book = pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx'))
-            sheets = velocity_book.sheet_names
-            date = choose_week_for_calc(self.config.start_date, sheets)
-            print(f'Для сценария с датой начала {self.config.start_date} используются данные по интегральности за {date}')
-            vel_edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'velocity_env.xlsx'), sheet_name=f'{date}')
+            # velocity_book = pd.ExcelFile(os.path.join(self.input_folder_path, 'velocity_env.xlsx'))
+            vel_edge_df = pd.read_excel(os.path.join(self.input_folder_path, 'velocity_env.xlsx'), sheet_name='Sheet1')
+            min_vel_date = vel_edge_df['date'].min()
+            if min_vel_date >= self.config.start_date:
+                vel_date = min_vel_date
+            else:
+                vel_date = vel_edge_df[vel_edge_df['date'] <= self.config.start_date]['date'].max()
+            if not vel_date:
+                raise ValueError(f'Не удалось определить дату для интегральности льда для даты начала {self.config.start_date}')
+            print(f'Для сценария с датой начала {self.config.start_date} используются данные по интегральности за {vel_date}')
+            # vel_edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'velocity_env.xlsx'), sheet_name=f'{date}')
             acc_vel_dict = dict(
-                zip(list(zip(vel_edge_data['start_point_id'], vel_edge_data['end_point_id'])), vel_edge_data['avg_norm'])
+                zip(list(zip(vel_edge_df['start_point_id'], vel_edge_df['end_point_id'])), vel_edge_df['avg_norm'])
             )
             acc_len_dict = dict(
-                zip(list(zip(vel_edge_data['start_point_id'], vel_edge_data['end_point_id'])),vel_edge_data['length'])
+                zip(list(zip(vel_edge_df['start_point_id'], vel_edge_df['end_point_id'])),vel_edge_df['length'])
             )
         for row in edge_data.itertuples():
             edge_1 = Edge(

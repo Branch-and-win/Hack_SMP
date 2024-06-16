@@ -1,12 +1,12 @@
 version: '3'
 services:
-#  model:
-#    build: ./src/smp_scenario
-#    volumes:
-#      - ./:/app
-#    ports:
-#     - "5001:5001"
-  dash2:
+  app:
+    build: ./src/smp_scenario
+    volumes:
+      - ./:/app
+    ports:
+     - "5021:5021"
+  app_dash:
     build: ./src/smp_dash
     volumes:
       - ./:/app
