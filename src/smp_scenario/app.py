@@ -86,7 +86,7 @@ async def create_scenario(
         duration_days: int = 7,
         # interval_hours: int = 1,
         cross_days: int = 2,
-        timelimit: int = 900,
+        # timelimit: int = 900,
         k_bests: int = 5,
 ):
     """
@@ -135,7 +135,7 @@ async def create_scenario(
         duration_days=duration_days,
         interval_hours=1,
         cross_days=cross_days,
-        timelimit=timelimit,
+        timelimit=900,
         k_bests=k_bests,
     )
     config.to_json(input_dir)
@@ -153,7 +153,7 @@ async def create_parent_scenario(
         duration_days: int = 7,
         # interval_hours: int = 1,
         cross_days: int = 2,
-        timelimit: int = 900,
+        # timelimit: int = 900,
         k_bests: int = 5,
 ):
     """
@@ -198,7 +198,7 @@ async def create_parent_scenario(
         duration_days=duration_days,
         interval_hours=1,
         cross_days=cross_days,
-        timelimit=timelimit,
+        timelimit=900,
         k_bests=k_bests,
     )
     config.to_json(input_dir)
