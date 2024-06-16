@@ -2,11 +2,14 @@ import os
 import io
 import shutil
 import zipfile
+from datetime import datetime
 
 import openpyxl
+import pandas as pd
 from fastapi import FastAPI, UploadFile
 from fastapi.responses import StreamingResponse
 
+from src.smp_model.graph.length_velocity_calc import dump_velocity_length
 from src.smp_scenario.parent_scenario import ParentScenario
 from src.smp_scenario.parent_scenario_config import ParentScenarioConfig
 from src.smp_scenario.scenario import Scenario
@@ -46,7 +49,7 @@ async def create_scenario(
     f = await main_data.read()
     xlsx = io.BytesIO(f)
     wb = openpyxl.load_workbook(xlsx)
-    wb.save(os.path.join(input_dir, 'main_data.xlsx'))
+    wb.save(os.path.join(input_dir, 'model_data.xlsx'))
 
     f = await velocity_env.read()
     xlsx = io.BytesIO(f)
@@ -96,7 +99,7 @@ async def create_parent_scenario(
     f = await main_data.read()
     xlsx = io.BytesIO(f)
     wb = openpyxl.load_workbook(xlsx)
-    wb.save(os.path.join(input_dir, 'main_data.xlsx'))
+    wb.save(os.path.join(input_dir, 'model_data.xlsx'))
 
     f = await velocity_env.read()
     xlsx = io.BytesIO(f)
@@ -162,3 +165,53 @@ async def calculate_scenario(
         return {'result': 'error', 'desc': f'Не удалось решить модель\n{e}'}
 
     return {'result': 'success', 'desc': f'Сценарий {name} успешно расчитан'}
+
+
+@app.post('/calculate_ice_integrality/')
+async def calculate_scenario(
+        main_data: UploadFile,
+        integer_velocity: UploadFile,
+):
+    if not main_data.filename.endswith('.xlsx'):
+        return {'result': 'error', 'desc': f'Файл {main_data.filename} должен быть формата .xlsx'}
+    if not integer_velocity.filename.endswith('.xlsx'):
+        return {'result': 'error', 'desc': f'Файл {integer_velocity.filename} должен быть формата .xlsx'}
+
+    tmp_folder_name = 'iw_' + datetime.now().strftime("%Y%m%d%H")
+    tmp_dir_path = os.path.join('.', 'data', 'tmp', tmp_folder_name)
+    if os.path.exists(tmp_dir_path):
+        shutil.rmtree(tmp_dir_path)
+    os.makedirs(tmp_dir_path)
+
+    f = await main_data.read()
+    xlsx = io.BytesIO(f)
+    wb = openpyxl.load_workbook(xlsx)
+    wb.save(os.path.join(tmp_dir_path, 'model_data.xlsx'))
+
+    f = await integer_velocity.read()
+    xlsx = io.BytesIO(f)
+    wb = openpyxl.load_workbook(xlsx)
+    wb.save(os.path.join(tmp_dir_path, 'IntegrVelocity.xlsx'))
+
+    result_df = dump_velocity_length(tmp_dir_path)
+    shutil.rmtree(tmp_dir_path)
+    with pd.ExcelWriter(os.path.join(tmp_dir_path, 'velocity_env.xlsx')) as writer:
+        result_df.to_excel(writer)
+
+    tmp_zf_path = os.path.join(tmp_dir_path, f'result.zip')
+    tmp_zf_data = zipfile.ZipFile(tmp_zf_path, "w")
+    for dirname, subdirs, files in os.walk(tmp_dir_path):
+        for filename in files:
+            short_dirname = dirname.replace(f'/data/tmp/{tmp_folder_name}', '')
+            tmp_zf_data.write(os.path.join(dirname, filename), os.path.join(short_dirname, filename))
+    tmp_zf_data.close()
+
+    return_data = io.BytesIO()
+    with open(tmp_zf_path, 'rb') as fo:
+        return_data.write(fo.read())
+    return_data.seek(0)
+
+    # shutil.rmtree(tmp_dir_path)
+
+    return StreamingResponse(return_data, media_type="application/zip",
+                             headers={'Content-Disposition': f'attachment; filename="result"'})

@@ -1,3 +1,6 @@
+from datetime import datetime
+from math import pi, sin, acos, cos
+
 import numpy as np
 import pandas as pd
 import geopy.distance
@@ -6,6 +9,8 @@ from src.smp_model.input import ModelInput
 from typing import List, Tuple
 import os
 from src.smp_model.utils import choose_week_for_calc
+
+
 class LengthVelocityCalc:
     # минимально допустимая интегральная тяжесть
     AV_INTEGRAL_ICE = 9.5
@@ -26,13 +31,31 @@ class LengthVelocityCalc:
     }
     inversed_converted_month_dict = {v: k for k, v in converted_month_dict.items()}
 
-    def __init__(self, input: ModelInput, filename: str = "IntegrVelocity.xlsx"):
+    def __init__(
+            self,
+            # input: ModelInput,
+            # filename: str = "IntegrVelocity.xlsx",
+            data_folder_path: str,
+            start_date: datetime,
+    ):
+
+        self.data_folder_path = data_folder_path
+        self.start_date = start_date
+
+        with pd.ExcelFile(os.path.join(data_folder_path, 'model_data.xlsx')) as reader:
+            self.ports_df = pd.read_excel(reader, sheet_name='points')
+            self.edges_df = pd.read_excel(reader, sheet_name='edges')
+            self.icebreakers_df = pd.read_excel(reader, sheet_name='icebreakers')
+            self.vessels_df = pd.read_excel(reader, sheet_name='vessels')
+        self.ports_dict = self.ports_df\
+            .set_index(['point_id'])\
+            .to_dict(orient='index')
 
         self.input = input
-        self.filename = filename
-        self.lon_arr: pd.DataFrame = pd.read_excel(os.path.join(input.input_folder_path, filename), sheet_name='lon', header=None)
-        self.lat_arr: pd.DataFrame = pd.read_excel(os.path.join(input.input_folder_path, filename), sheet_name='lat', header=None)
-        self.date_vel_env, self.vel_arr = self.get_velocity_data(input.config.start_date)
+        self.filename = 'IntegrVelocity.xlsx'
+        self.lon_arr: pd.DataFrame = pd.read_excel(os.path.join(self.data_folder_path, self.filename), sheet_name='lon', header=None)
+        self.lat_arr: pd.DataFrame = pd.read_excel(os.path.join(self.data_folder_path, self.filename), sheet_name='lat', header=None)
+        self.date_vel_env, self.vel_arr = self.get_velocity_data(self.start_date)
 
         self.graph: dict = defaultdict(lambda: {})
         self.nodes: list = []
@@ -56,11 +79,11 @@ class LengthVelocityCalc:
 
         return pd.DataFrame({'lon': lon_arr, 'lat': lat_arr, 'vel': vel_arr, "idx": idxs})
 
-    def get_velocity_data(self, date: str) -> Tuple[str,np.array]:
+    def get_velocity_data(self, date: datetime) -> Tuple[str,np.array]:
         astr_date = date.strftime("%Y-%m-%d").split('-')
         astr_date[1] = self.converted_month_dict.get(astr_date[1], '03')
 
-        velocity_book = pd.ExcelFile(os.path.join(self.input.input_folder_path, self.filename))
+        velocity_book = pd.ExcelFile(os.path.join(self.data_folder_path, self.filename))
         sheets = velocity_book.sheet_names
         if '-'.join(astr_date) not in sheets:
             dates = [i.replace(i.split('-')[1], self.converted_month_dict.get(i.split('-')[1], '03')) for i in sheets if i not in ['lon','lat']]
@@ -69,9 +92,9 @@ class LengthVelocityCalc:
             str_date = sheet.strftime("%d-%m-%Y").split('-')
             str_date[1] = self.converted_month_dict.get(str_date[1], 'Mar')
             return date.strftime("%Y-%m-%d"), pd.read_excel(
-                os.path.join(self.input.input_folder_path, self.filename), sheet_name='-'.join(str_date), header=None).to_numpy()
+                os.path.join(self.data_folder_path, self.filename), sheet_name='-'.join(str_date), header=None).to_numpy()
         else:
-            return '-'.join(astr_date), pd.read_excel(os.path.join(self.input.input_folder_path, self.filename), sheet_name='-'.join(astr_date), header=None).to_numpy()
+            return '-'.join(astr_date), pd.read_excel(os.path.join(self.data_folder_path, self.filename), sheet_name='-'.join(astr_date), header=None).to_numpy()
 
     def create_graph(self):
 
@@ -94,16 +117,28 @@ class LengthVelocityCalc:
                     neigh_lon.append(self.lon_arr.iloc[i, j])
 
                 df['coords'] = list(zip(neigh_lat, neigh_lon))
-                df["distance"] = df["coords"].apply(lambda x: geopy.distance.geodesic(x, (lat_v, lon_v)).km)
+                df["distance"] = df["coords"].apply(lambda x: self.spherical_distance(x, (lat_v, lon_v)))
+                # df["distance"] = df["coords"].apply(lambda x: geopy.distance.geodesic(x, (lat_v, lon_v)).km)
                 self.graph[f'{row}_{col}'] = dict(zip([f"{k[0]}_{k[1]}" for k in filtered_neighbours], df["distance"]))
 
-        for port in self.input.ports:
-            idx = port.name
+        for port in self.ports_df.itertuples():
+            idx = port.point_id
             lat_v = port.latitude
             lon_v = port.longitude
             self.add_point_around_port(idx, lat_v, lon_v)
 
         self.nodes = list(self.graph.keys())
+
+    @staticmethod
+    def spherical_distance(a1, a2):
+        x1 = pi / 180 * float(a1[1])
+        y1 = pi / 180 * float(a1[0])
+        x2 = pi / 180 * float(a2[1])
+        y2 = pi / 180 * float(a2[0])
+        a = 20000 / pi  ### length of one radian of arc on earth
+        phi = sin(y1) * sin(y2) + cos(y1) * cos(y2) * cos(x1 - x2)
+        d = acos(phi) * a
+        return d
 
     def add_point_around_port(self, port, lat_p, lon_p):
         """Поиск соседей для портов"""
@@ -211,13 +246,19 @@ class LengthVelocityCalc:
         return path, shortest_path[end_node] * convert_to_mni['km']
 
 
-def dump_velocity_length(input: ModelInput, filename: str = 'IntegrVelocity.xlsx') -> None:
+def dump_velocity_length(
+        # input: ModelInput,
+        # filename: str = 'IntegrVelocity.xlsx'
+        data_folder_path: str,
+) -> pd.DataFrame:
     """Обновление информации о ледовых условиях"""
 
-    if not os.path.isfile(os.path.join(input.input_folder_path, filename)):
-        return
+    if not os.path.isfile(os.path.join(data_folder_path, 'IntegrVelocity.xlsx')):
+        return pd.DataFrame
+    if not os.path.isfile(os.path.join(data_folder_path, 'model_data.xlsx')):
+        return pd.DataFrame
 
-    velocity_book = pd.ExcelFile(os.path.join(input.input_folder_path, filename))
+    velocity_book = pd.ExcelFile(os.path.join(data_folder_path, 'IntegrVelocity.xlsx'))
     sheets = velocity_book.sheet_names
     data = {
         'start_point_id': [],
@@ -234,23 +275,23 @@ def dump_velocity_length(input: ModelInput, filename: str = 'IntegrVelocity.xlsx
         v_l[1] = LengthVelocityCalc.inversed_converted_month_dict.get(v_l[1], v_l[1])
         date = pd.to_datetime('-'.join(v_l), format='%d-%m-%Y')
         print(f'Расчет интегральной тяжести на {date}')
-        input.config.start_date = date
-        graph_creator = LengthVelocityCalc(input)
+        start_date = date
+        graph_creator = LengthVelocityCalc(data_folder_path, start_date)
         graph_creator.create_graph()
         graph, nodes = graph_creator.graph, graph_creator.nodes
         temp_set = set()
-        for edge in input.edges:
-            if (edge.port_to.id, edge.port_from.id) in temp_set:
+        for edge in graph_creator.edges_df.itertuples():
+            if (edge.start_point_id, edge.end_point_id) in temp_set:
                 continue
-            if edge.is_fict:
+            if edge.start_point_id == edge.end_point_id:
                 continue
-            data['start_point_id'].append(edge.port_from.id)
-            data['end_point_id'].append(edge.port_to.id)
+            data['start_point_id'].append(edge.start_point_id)
+            data['end_point_id'].append(edge.end_point_id)
             data['date'].append(date)
-            temp_set.add((edge.port_from.id, edge.port_to.id))
+            temp_set.add((edge.start_point_id, edge.end_point_id))
             try:
-                print(edge.port_from.name,'->', edge.port_to.name)
-                route, dist = LengthVelocityCalc.dijkstra_algorithm(edge.port_from.name, edge.port_to.name, nodes, graph)
+                print(edge.start_point_id,'->', edge.end_point_id)
+                route, dist = LengthVelocityCalc.dijkstra_algorithm(edge.start_point_id, edge.end_point_id, nodes, graph)
                 print(dist)
                 num_points = len(route)
                 velocity_values = []
@@ -277,6 +318,11 @@ def dump_velocity_length(input: ModelInput, filename: str = 'IntegrVelocity.xlsx
                 continue
 
     data = pd.DataFrame(data)
-    path = os.path.join(input.input_folder_path, 'velocity_env.xlsx')
-    with pd.ExcelWriter(path) as writer:
-        data.to_excel(writer, index=False)
+    # path = os.path.join(input.input_folder_path, 'velocity_env.xlsx')
+    # with pd.ExcelWriter(path) as writer:
+    #     data.to_excel(writer, index=False)
+    return data
+
+if __name__ == '__main__':
+    tmp_dir_path = os.path.join('.', 'data', 'tmp', 'test')
+    test_df = dump_velocity_length(tmp_dir_path)
