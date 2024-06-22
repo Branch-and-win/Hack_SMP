@@ -176,7 +176,7 @@ class Model:
 		len_linkage = defaultdict(int)
 		vessel_departures = defaultdict(list)
 		for d in self.model.departure_result.keys():
-			if d.edge.port_from.id != d.edge.port_to.id:
+			if d.edge.port_from.id != d.edge.port_to.id and d.is_icebreaker_assistance:
 				linkage_departures[d.edge.port_from.id, d.edge.port_to.id, d.time].append(d)
 				len_linkage[d.edge.port_from.id, d.edge.port_to.id, d.time] += 1
 				vessel_departures[d.vessel.id].append(d)
