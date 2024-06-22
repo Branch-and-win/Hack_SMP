@@ -66,7 +66,6 @@ class ModelInput:
         self.read_vessels_xlsx()
         self.read_icebreakers_xlsx()
         self.speed_decrease_xlsx()
-        
 
         self.create_main_graph()
         self.calculate_min_time_from_start()
@@ -225,6 +224,7 @@ class ModelInput:
             if not vel_date:
                 raise ValueError(f'Не удалось определить дату для интегральности льда для даты начала {self.config.start_date}')
             print(f'Для сценария с датой начала {self.config.start_date} используются данные по интегральности за {vel_date}')
+            vel_edge_df = vel_edge_df[vel_edge_df['date'] == vel_date]
             # vel_edge_data = pd.read_excel(os.path.join(self.input_folder_path, 'velocity_env.xlsx'), sheet_name=f'{date}')
             acc_vel_dict = dict(
                 zip(list(zip(vel_edge_df['start_point_id'], vel_edge_df['end_point_id'])), vel_edge_df['avg_norm'])

@@ -41,17 +41,11 @@ class Vessel:
 
     @property
     def type_max_speed(self):
-        if not self.is_icebreaker:
-            return self.class_type, self.max_speed
-        else:
-            return self.name, self.max_speed
+        return self.class_type, self.max_speed
 
     @property
     def type_max_speed_str(self):
-        if not self.is_icebreaker:
-            return f'{self.class_type}_s{self.max_speed}'
-        else:
-            return f'{self.name}_s{self.max_speed}'
+        return f'{self.class_type}_s{self.max_speed}'
 
     def fill_possible_edges(self, possible_edges, possible_ports):
         self.possible_edges = possible_edges
