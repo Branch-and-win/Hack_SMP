@@ -114,7 +114,7 @@ def update_assistance_graph(scenario_name, icebreaker_names):
         Input('assistance-icebreaker-dropdown', 'value'),
     ],
 )
-def update_hospital_datatable(point_select, scenario_name, icebreaker_names):
+def update_assistance_gant(point_select, scenario_name, icebreaker_names):
     if icebreaker_names is None:
         icebreaker_names = []
     if point_select is None:
