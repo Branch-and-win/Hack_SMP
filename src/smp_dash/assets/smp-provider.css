@@ -259,11 +259,15 @@ span.Select-clear-zone {
   height: 100%;
   min-width: 1200px;
 }
+#best-routes-map {
+  height: 70%;
+  min-width: 1200px;
+}
 
 #geo-map-loading-outer {
   height: 70vh;
   margin-left: 210px;
-  margin-right: 20px;
+  margin-right: 30px;
   display: block;
   width: auto;
 }

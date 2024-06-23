@@ -81,13 +81,13 @@ def layout():
                 children=[
                     dcc.Graph(
                         id="best-routes-map",
-                        figure={
-                            "data": [],
-                            "layout": dict(
-                                plot_bgcolor="#171b26",
-                                paper_bgcolor="#171b26",
-                            ),
-                        },
+                        # figure={
+                        #     "data": [],
+                        #     "layout": dict(
+                        #         plot_bgcolor="#171b26",
+                        #         paper_bgcolor="#171b26",
+                        #     ),
+                        # },
                         # style={"height": "60vh"}
                     ),
                 ],
