@@ -387,6 +387,11 @@ class DashData:
             2: 'red',
             3: 'black',
             4: 'blue',
+            5: 'DeepSkyBlue',
+            6: 'GoldenRod',
+            7: 'LightCoral',
+            8: 'MediumPurple',
+            9: 'PeachPuff',
         }
         fig = go.Figure(dash_data.base_map_fig[scenario_name])
         if k != 'Все':
