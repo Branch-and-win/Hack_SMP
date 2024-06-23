@@ -88,6 +88,7 @@ def layout():
                                 paper_bgcolor="#171b26",
                             ),
                         },
+                        style={"height": "60vh"}
                     ),
                 ],
             ),

@@ -18,15 +18,20 @@ class DashData:
         else:
             self.scenarios_folder_path = scenarios_folder_path
 
-        self.color_discrete_map = {
-            'Перемещение судна': 'DeepSkyBlue',
-            'Ожидание': 'red',
+        self.icebreakers_discrete_map = {
             '50 лет Победы': 'brown',
             'Вайгач': 'BlueViolet',
             'Ямал': 'DarkOliveGreen',
             'Таймыр': 'Chocolate',
+        }
+
+        self.color_discrete_map = {
+            'Перемещение судна': 'DeepSkyBlue',
+            'Ожидание': 'red',
             'Порт назначения': 'Black',
         }
+        self.color_discrete_map.update(self.icebreakers_discrete_map)
+
         self.ports_df = pd.DataFrame(columns=['scenario_name'])
         self.edges_df = pd.DataFrame(columns=['scenario_name'])
         self.icebreakers_df = pd.DataFrame(columns=['scenario_name'])
@@ -45,7 +50,7 @@ class DashData:
 
         # По умолчанию загружается базовый сценарий
         if load_base:
-            self.upload_scenario('base')
+            self.upload_scenario('gurobi_cross2_new_obj_opt')
 
     @property
     def category_orders(self):
@@ -273,8 +278,6 @@ class DashData:
             lon="longitude",
             text="name",
             zoom=2,
-            height=400,
-            width=1250,
         )
 
         all_edges = []
@@ -414,6 +417,103 @@ class DashData:
             line_num = len(fig['data']) - 1
             fig['data'][line_num]['marker']['size'] = 15
             fig['data'][line_num]['marker']['color'] = 'green'
+
+    def get_assistance_plot(self, scenario_name, icebreaker_names):
+        if not icebreaker_names:
+            icebreaker_names = []
+        assistance_count_df = (self.result_departures_df[
+            (self.result_departures_df['scenario_name'] == scenario_name)
+            & (self.result_departures_df['edge_type'].isin(icebreaker_names))
+            & (self.result_departures_df['is_icebreaker'] == False)
+        ].groupby(['port_from_id', 'time_from_dt', 'edge_type']).agg({'vessel_name': 'count'})
+                                  .reset_index().rename(columns={'vessel_name': 'assistance_count'}))
+        assistance_stat_df = assistance_count_df.groupby(['port_from_id']).agg(
+            max_count=('assistance_count', 'max'),
+            min_count=('assistance_count', 'min'),
+            sum_count=('assistance_count', 'sum'),
+            cnt_count=('assistance_count', 'count'),
+        ).reset_index()
+        assistance_count_total_stat = {}
+        assistance_count_total_stat['min'] = assistance_stat_df['cnt_count'].min()
+        assistance_count_total_stat["max"] = assistance_stat_df['cnt_count'].max()
+        assistance_count_total_stat["mid"] = (assistance_count_total_stat["min"] + assistance_count_total_stat["max"]) / 2
+
+        colors = ["#21c7ef", "#76f2ff", "#ff6969", "#ff1717"]
+        low_quant, mid_quant, up_quant, max_val = assistance_stat_df['cnt_count'].quantile(q=[0.25, 0.5, 0.75, 1])
+        assistance_stat_df['color'] = assistance_stat_df['cnt_count'].apply(
+            lambda x:
+            colors[0] if x <= low_quant
+            else colors[1] if x <= mid_quant
+            else colors[2] if x <= up_quant
+            else colors[3]
+        )
+
+        fig = go.Figure(self.base_map_fig[scenario_name])
+        for row in assistance_stat_df.itertuples():
+            fig.add_trace(
+                go.Scattermapbox(
+                    lat=[self.ports_dict[scenario_name][row.port_from_id]['latitude']],
+                    lon=[self.ports_dict[scenario_name][row.port_from_id]['longitude']],
+                    mode="markers",
+                    marker=dict(
+                        color=row.color,
+                        showscale=True,
+                        colorscale=[
+                            [0, "#21c7ef"],
+                            [0.33, "#76f2ff"],
+                            [0.66, "#ff6969"],
+                            [1, "#ff1717"],
+                        ],
+                        cmin=assistance_count_total_stat["min"],
+                        cmax=assistance_count_total_stat["max"],
+                        size=10
+                        * (1 + (row.cnt_count + assistance_count_total_stat["min"]) / assistance_count_total_stat["mid"]),
+                        colorbar=dict(
+                            x=0.9,
+                            len=0.7,
+                            title=dict(
+                                text="Кол-во караванов",
+                                font={"color": "#737a8d", "family": "Open Sans"},
+                            ),
+                            titleside="top",
+                            tickmode="array",
+                            tickvals=[assistance_count_total_stat["min"], assistance_count_total_stat["max"]],
+                            ticktext=[
+                                assistance_count_total_stat["min"],
+                                assistance_count_total_stat["max"],
+                            ],
+                            ticks="outside",
+                            thickness=15,
+                            tickfont={"family": "Open Sans", "color": "#737a8d"},
+                        ),
+                    ),
+                    opacity=0.8,
+                    selected=dict(marker={"color": "#ffff00"}),
+                    customdata=[(self.ports_dict[scenario_name][row.port_from_id]['point_name'])],
+                    hoverinfo="text",
+                    text=self.ports_dict[scenario_name][row.port_from_id]['point_name']
+                    + "<br>Кол-во караванов:"
+                    + f" {row.cnt_count}"
+                    + "<br>Минимальное количество судов в караване:"
+                    + f" {row.min_count}"
+                    + "<br>Максимальное количество судов в караване:"
+                    + f" {row.max_count}"
+                    + "<br>Общее количество судов в караване:"
+                    + f" {row.sum_count}"
+                )
+            )
+
+        fig.update_layout(
+            # autosize=True,
+            # width=1500,
+            height=880,
+            mapbox_style="open-street-map",
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            clickmode="event+select",
+            hovermode="closest",
+            showlegend=False,
+        )
+        return fig
 
 
 dash_data = DashData()

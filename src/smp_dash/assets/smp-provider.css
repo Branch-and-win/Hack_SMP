@@ -127,7 +127,7 @@ body {
   width: auto;
 }
 
-#home-upper-container, #home-lower-container, #ice-upper-container, #ice-lower-container, #route-upper-container, #route-lower-container {
+#home-upper-container, #home-lower-container, #ice-upper-container, #ice-lower-container, #route-upper-container, #route-lower-container, #assistance-upper-container {
   margin: 2rem 5rem;
   margin-left: 190px;
 }
@@ -262,7 +262,14 @@ span.Select-clear-zone {
 }
 
 #geo-map-loading-outer {
-  height: 800px;
+  /*height: 800px;*/
+  /*width: 87%;*/
+  margin-left: 210px;
+  height: 80rem;
+}
+#assistance-map-loading-outer {
+  /*height: 800px;*/
+  height: 100px;
   width: 87%;
   margin-left: 210px;
 }
@@ -331,7 +338,7 @@ span.Select-clear-zone {
     height: 1.5rem;
   }
 
-  #home-upper-container, #ice-upper-container, #route-upper-container {
+  #home-upper-container, #ice-upper-container, #route-upper-container, #assistance-upper-container {
     margin: 1rem;
     overflow: hidden;
   }

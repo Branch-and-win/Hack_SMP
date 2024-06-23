@@ -24,6 +24,8 @@ def get_sidebar(active_item=None):
                                     active=True if active_item=='pages.home' else False)),
             dbc.NavItem(dbc.NavLink("Анализ маршрутов", href="/route_analysis", className='text-white',
                                     active=True if active_item=='pages.route_analysis' else False)),
+            dbc.NavItem(dbc.NavLink("Анализ караванов", href="/assistance_analysis", className='text-white',
+                                    active=True if active_item=='pages.assistance_analysis' else False)),
             dbc.NavItem(dbc.NavLink("Анализ состояния льда", href="/ice_analysis", className='text-white',
                                     active=True if active_item == 'pages.ice_analysis' else False)),
             dbc.NavItem(dbc.NavLink("Анализ лучших маршрутов", href="/best_route_analysis", className='text-white',
