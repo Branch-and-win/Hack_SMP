@@ -158,12 +158,38 @@ class DashData:
         self.fill_additional_data(scenario_name)
 
     def create_velocity_objects_for_plot(self, scenario_name):
+        colors = {
+            'Чистая вода': 'green',
+            'Средний лёд': 'yellow',
+            'Тяжёлый лёд': 'red',
+            'Непроходимый лёд': 'black',
+
+        }
         velocity_by_date = (self.velocity_df[self.velocity_df['scenario_name'] == scenario_name]
                                      .groupby('date'))
         scenario_dates = []
         scenario_ports_dict = self.ports_dict[scenario_name]
         self.velocity_plot_points_figs[scenario_name] = {}
         for date in velocity_by_date.groups.keys():
+            layout = go.Layout(
+                yaxis=dict(
+                    range=[self.ports_df['latitude'].min(), self.ports_df['latitude'].max()]
+                ),
+                xaxis=dict(
+                    range=[self.ports_df['longitude'].min(), self.ports_df['longitude'].max()]
+                )
+            )
+            legend = [
+                go.Scatter(
+                    x=[None],
+                    y=[None],
+                    mode="markers",
+                    name=color_type,
+                    marker=dict(size=10, color=color, symbol='circle'),
+                )
+                for color_type, color in colors.items()
+            ]
+
             velocity_grouped = velocity_by_date.get_group(date)
             unique_points = np.unique(velocity_grouped[['start_point_id', 'end_point_id']].values)
             unique_plot_points_df = pd.DataFrame(
@@ -191,6 +217,7 @@ class DashData:
                     height=900,
                 )
             )
+            velocity_fig.add_traces(go.Figure(data=legend, layout=layout).data)
 
             edges = []
             edges_avg_norm = []
@@ -219,17 +246,18 @@ class DashData:
                     'latitude',
                 ]
             )
+            len_data = len(velocity_fig['data'])
             for i, (idx, edge_df) in enumerate(edges_df.groupby(edges_df.index // 2)):
                 velocity_fig.add_traces(px.line_mapbox(edge_df, lat="latitude", lon="longitude").data)
                 if edges_avg_norm[i] >= 19.5:
-                    color = 'green'
+                    color = colors['Чистая вода']
                 elif edges_avg_norm[i] >= 14.5:
-                    color = 'yellow'
+                    color = colors['Средний лёд']
                 elif edges_avg_norm[i] >= 9.5:
-                    color = 'red'
+                    color = colors['Тяжёлый лёд']
                 else:
-                    color = 'black'
-                velocity_fig['data'][1 + i]['line']['color'] = color
+                    color = colors['Непроходимый лёд']
+                velocity_fig['data'][len_data + i]['line']['color'] = color
 
             icebreakers_departures = self.result_departures_df[
                 (self.result_departures_df['time_from_dt'] >= date)
@@ -259,6 +287,24 @@ class DashData:
 
             velocity_fig.update_layout(mapbox_style="open-street-map")
             velocity_fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+            velocity_fig.update_xaxes(visible=False)
+            velocity_fig.update_yaxes(visible=False)
+
+            velocity_fig.update_layout(
+                legend=dict(
+                    x=0,
+                    y=1,
+                    title_font_family="Times New Roman",
+                    font=dict(
+                        family="Courier",
+                        size=12,
+                        color="black"
+                    ),
+                    bgcolor="LightSteelBlue",
+                    bordercolor="Black",
+                    borderwidth=2
+                )
+            )
 
             date_str = str(date.date())
             self.velocity_plot_points_figs[scenario_name][date_str] = velocity_fig
