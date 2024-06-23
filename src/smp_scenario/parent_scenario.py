@@ -136,6 +136,11 @@ class ParentScenario(Scenario):
                 (child_scenario_departures_df['time_from_dt'] < child_scenario.config.end_date_dt)
                 | (child_scenario_departures_df['time_to_dt'] <= child_scenario.config.end_date_dt)
             ]
+            # Корректировка времени конца для ожиданий, пересекающих дату конца сценария
+            for row in child_scenario_departures_df.itertuples():
+                if row.port_from_id == row.port_to_id and row.time_to_dt > child_scenario.config.end_date_dt:
+                    child_scenario_departures_df.at[row.Index, 'time_to_dt'] = child_scenario.config.end_date_dt
+
             all_departures_list.append(child_scenario_departures_df)
             all_planning_start_dates_list.append(planning_start_dates_df)
             all_vessel_best_routes_list.append(vessel_best_routes_df)

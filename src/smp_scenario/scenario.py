@@ -144,7 +144,8 @@ class Scenario:
         for row in cross_start_departures_df.itertuples():
             update_start_points_dict[row.vessel_id] = {
                 'start_point_id': row.port_to_id,
-                'start_date': row.time_to_dt,
+                # Корректировка времени конца для ожиданий, пересекающих дату начала
+                'start_date': row.time_to_dt if row.port_from_id != row.port_to_id else self.config.start_date_dt,
             }
         # Отправления, которые закончили перемещение до даты начала сценария
         ended_departures_df = departures_df[
