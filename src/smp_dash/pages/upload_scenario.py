@@ -14,7 +14,7 @@ def layout():
                 html.Div(
                     id="upload-select-scenario-outer",
                     children=[
-                        html.Label("Выберите сценарий для загрузки"),
+                        html.Label("Выберите сценарий для загрузки:"),
                         dcc.Dropdown(
                             dash_data.scenarios_to_upload,
                             id='upload-select-scenario-dropdown',

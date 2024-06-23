@@ -15,7 +15,7 @@ def build_upper_left_panel():
                     html.Div(
                         # id="scenario-select-outer",
                         children=[
-                            html.Label("Выберите сценарий"),
+                            html.Label("Выберите сценарий:"),
                             dcc.Dropdown(
                                 dash_data.result_departures_df.scenario_name.unique(),
                                 'base',
@@ -45,7 +45,7 @@ def build_upper_right_panel():
                     html.Div(
                         # id="scenario-select-outer",
                         children=[
-                            html.Label("Выберите дату"),
+                            html.Label("Выберите дату:"),
                             dcc.Dropdown(
                                 id='best-route-date-dropdown',
                             ),
@@ -88,7 +88,7 @@ def layout():
                                 paper_bgcolor="#171b26",
                             ),
                         },
-                        style={"height": "60vh"}
+                        # style={"height": "60vh"}
                     ),
                 ],
             ),

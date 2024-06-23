@@ -27,7 +27,7 @@ class DashData:
 
         self.color_discrete_map = {
             'Перемещение судна': 'DeepSkyBlue',
-            'Ожидание': 'red',
+            'Ожидание': 'grey',
             'Порт назначения': 'Black',
         }
         self.color_discrete_map.update(self.icebreakers_discrete_map)
@@ -489,7 +489,7 @@ class DashData:
                     ),
                     opacity=0.8,
                     selected=dict(marker={"color": "#ffff00"}),
-                    customdata=[(self.ports_dict[scenario_name][row.port_from_id]['point_name'])],
+                    customdata=[row.port_from_id],
                     hoverinfo="text",
                     text=self.ports_dict[scenario_name][row.port_from_id]['point_name']
                     + "<br>Кол-во караванов:"
@@ -506,7 +506,7 @@ class DashData:
         fig.update_layout(
             # autosize=True,
             # width=1500,
-            height=880,
+            # height=880,
             mapbox_style="open-street-map",
             margin={"r": 0, "t": 0, "l": 0, "b": 0},
             clickmode="event+select",

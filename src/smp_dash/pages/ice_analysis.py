@@ -15,7 +15,7 @@ def build_upper_left_panel():
                     html.Div(
                         id="scenario-select-outer",
                         children=[
-                            html.Label("Выберите сценарий"),
+                            html.Label("Выберите сценарий:"),
                             dcc.Dropdown(
                                 dash_data.result_departures_df.scenario_name.unique(),
                                 'base',
@@ -27,7 +27,7 @@ def build_upper_left_panel():
                     html.Div(
                         id="ice-select-outer",
                         children=[
-                            html.Label("Выберите дату прогноза интегральности льда"),
+                            html.Label("Выберите дату прогноза интегральности льда:"),
                             dcc.Slider(
                                 id='ice-slider',
                                 step=1,

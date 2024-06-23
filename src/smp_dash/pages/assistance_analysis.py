@@ -8,7 +8,7 @@ from src.smp_dash.pages.home import get_sidebar
 
 def build_upper_left_panel():
     return html.Div(
-        id="assistance-upper-left",
+        id="upper-left",
         className="my-route-upper-container-left",
         children=[
             html.Div(
@@ -17,7 +17,7 @@ def build_upper_left_panel():
                     html.Div(
                         # id="scenario-select-outer",
                         children=[
-                            html.Label("Выберите сценарий"),
+                            html.Label("Выберите сценарий:"),
                             dcc.Dropdown(
                                 dash_data.result_departures_df.scenario_name.unique(),
                                 'base',
@@ -46,30 +46,50 @@ def layout():
             html.H1(children='Дашборд сервиса по планированию маршрутов атомных ледоколов по СМП', style={'textAlign': 'center'}, className='my-head'),
 
             html.Div(
-                id="assistance-upper-container",
+                id="route-upper-container",
                 className="route-upper-block",
                 children=[
                     build_upper_left_panel(),
-                ]
-            ),
-
-            html.Div(
-                id="assistance-map-loading-outer",
-                children=[
-                    dcc.Graph(
-                        id="assistance-map",
-                        figure={
-                            "data": [],
-                            "layout": dict(
-                                plot_bgcolor="#171b26",
-                                paper_bgcolor="#171b26",
+                    # html.Div(className='spacer'),
+                    html.Div(
+                        id="geo-map-outer",
+                        className="my-route-upper-container-right",
+                        children=[
+                            html.P(
+                                id="map-title",
+                                children="Карта сбора караванов в СМП",
                             ),
-                        },
-                        style={"height": "60vh"}
+                            html.Div(
+                                id="assistance-map-loading-outer",
+                                children=[
+                                    dcc.Loading(
+                                        id="loading",
+                                        children=[
+                                            dcc.Graph(
+                                                id="assistance-map",
+                                                figure={
+                                                    "data": [],
+                                                    "layout": dict(
+                                                        plot_bgcolor="#171b26",
+                                                        paper_bgcolor="#171b26",
+                                                    ),
+                                                },
+                                            ),
+                                        ]
+                                    )
+                                ],
+                            ),
+                        ]
                     ),
                 ],
             ),
             html.Br(),
+            html.Div(
+                id="geo-map-loading-outer",
+                children=[
+                    dcc.Graph(id='assistance-graph-gant')
+                ],
+            ),
             html.Br()
         ])
     ]
@@ -84,3 +104,40 @@ def layout():
 def update_assistance_graph(scenario_name, icebreaker_names):
     fig = dash_data.get_assistance_plot(scenario_name, icebreaker_names)
     return fig
+
+
+@callback(
+    Output("assistance-graph-gant", "figure"),
+    [
+        Input("assistance-map", "selectedData"),
+        Input('assistance-scenario-dropdown', 'value'),
+        Input('assistance-icebreaker-dropdown', 'value'),
+    ],
+)
+def update_hospital_datatable(point_select, scenario_name, icebreaker_names):
+    if icebreaker_names is None:
+        icebreaker_names = []
+    if point_select is None:
+        gant_df = dash_data.result_departures_df[
+            (dash_data.result_departures_df.scenario_name == scenario_name)
+            & (dash_data.result_departures_df.edge_type.isin(icebreaker_names))
+        ]
+    else:
+        point_ids = [point['customdata'] for point in point_select['points'] if 'customdata' in point]
+        gant_df = dash_data.result_departures_df[
+            (dash_data.result_departures_df.scenario_name == scenario_name)
+            & (dash_data.result_departures_df.edge_type.isin(icebreaker_names))
+            & (dash_data.result_departures_df.port_from_id.isin(point_ids))
+        ]
+
+    gant_fig = px.timeline(
+        gant_df,
+        x_start="time_from_dt",
+        x_end="time_to_dt",
+        y="vessel_name",
+        color="edge_type",
+        color_discrete_map=dash_data.color_discrete_map,
+        category_orders=dash_data.category_orders,
+        hover_data=['integer_ice', 'speed', 'max_speed', 'port_from', 'port_to']
+    )
+    return gant_fig
