@@ -137,7 +137,7 @@ class Scenario:
 
         # Отправления, которые пересекают дату начала планирования текущего сценария
         cross_start_departures_df = departures_df[
-            (departures_df['time_from_dt'] <= self.config.start_date_dt)
+            (departures_df['time_from_dt'] < self.config.start_date_dt)
             & (departures_df['time_to_dt'] > self.config.start_date_dt)
         ]
         update_start_points_dict = {}
@@ -149,7 +149,7 @@ class Scenario:
             }
         # Отправления, которые закончили перемещение до даты начала сценария
         ended_departures_df = departures_df[
-            (departures_df['time_to_dt'] < self.config.start_date_dt)
+            (departures_df['time_to_dt'] <= self.config.start_date_dt)
             & (~departures_df['vessel_id'].isin(update_start_points_dict))
         ]
         # Фильтрация только по последним перемещениям

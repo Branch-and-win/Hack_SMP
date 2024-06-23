@@ -20,7 +20,7 @@ class ModelDash:
             self.edges_df = pd.read_excel(reader, sheet_name='edges')
             self.icebreakers_df = pd.read_excel(reader, sheet_name='icebreakers')
             self.vessels_df = pd.read_excel(reader, sheet_name='vessels')
-        with pd.ExcelFile(os.path.join(output_folder_path, 'departures (2).xlsx')) as reader:
+        with pd.ExcelFile(os.path.join(output_folder_path, 'departures.xlsx')) as reader:
             self.result_departures_df = pd.read_excel(reader, sheet_name='Sheet1')
             self.collect_kpi(output_folder_path, self.result_departures_df)
 
