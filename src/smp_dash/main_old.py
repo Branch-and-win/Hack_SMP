@@ -20,11 +20,44 @@ class ModelDash:
             self.edges_df = pd.read_excel(reader, sheet_name='edges')
             self.icebreakers_df = pd.read_excel(reader, sheet_name='icebreakers')
             self.vessels_df = pd.read_excel(reader, sheet_name='vessels')
-        with pd.ExcelFile(os.path.join(output_folder_path, 'departures.xlsx')) as reader:
+        with pd.ExcelFile(os.path.join(output_folder_path, 'departures (2).xlsx')) as reader:
             self.result_departures_df = pd.read_excel(reader, sheet_name='Sheet1')
             self.collect_kpi(output_folder_path, self.result_departures_df)
 
+        self.fill_miss_intervals()
         self.ports_dict = self.ports_df.set_index('point_id').to_dict(orient='index')
+
+    def fill_miss_intervals(self):
+        vessels = self.result_departures_df.loc[self.result_departures_df['is_icebreaker'] == True, 'vessel_id'].unique()
+        res_df = pd.DataFrame()
+        for vessel in vessels:
+            temp_df = self.result_departures_df[self.result_departures_df['vessel_id'] == vessel]
+            temp_df = temp_df.sort_values(by='time_from_dt')
+            last_date = temp_df['time_to_dt'].iloc[0]
+            for i in range(1, temp_df.shape[0]):
+                curr_date = temp_df['time_from_dt'].iloc[i]
+                diff_time = curr_date - last_date
+                if diff_time.total_seconds() <= 0:
+                    last_date = temp_df['time_to_dt'].iloc[i]
+                    continue
+                row = temp_df.iloc[i]
+                duration = diff_time.total_seconds() / 3600
+
+                row['duration'] = duration
+                row['port_from'] = temp_df['port_from'].iloc[i]
+                row['port_to_id'] = temp_df['port_from_id'].iloc[i]
+                row['port_to'] = temp_df['port_from'].iloc[i]
+                row['speed'] = 0
+                row['integer_ice'] = 21
+                row['time_from_dt'] = last_date
+                row['time_to_dt'] = curr_date
+                res_df = pd.concat([res_df, pd.DataFrame(row).T], ignore_index=True)
+                last_date = temp_df['time_to_dt'].iloc[i]
+        res_df = res_df[res_df['duration'] >= 0]
+        self.result_departures_df = pd.concat([self.result_departures_df, res_df], ignore_index=True)
+
+        with pd.ExcelWriter(os.path.join(self.output_folder_path, 'departures.xlsx')) as writer:
+            self.result_departures_df.to_excel(writer, index=False)
 
     def plot_results(self):
         """
