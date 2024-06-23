@@ -50,7 +50,7 @@ class DashData:
 
         # По умолчанию загружается базовый сценарий
         if load_base:
-            self.upload_scenario('gurobi_cross2_new_obj_opt')
+            self.upload_scenario('base')
 
     @property
     def category_orders(self):
