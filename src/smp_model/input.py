@@ -141,7 +141,7 @@ class ModelInput:
         return list(range(math.ceil(self.config.planning_hours / self.config.hours_in_interval)))
     
     def date_to_time(self, date: datetime) -> int:
-        return math.ceil((date - self.config.start_date).seconds / 3600 / self.config.hours_in_interval)
+        return math.ceil((date - self.config.start_date).total_seconds() / 3600 / self.config.hours_in_interval)
 
     def read_ports_xlsx(self) -> None:
         port_data = pd.read_excel(os.path.join(self.input_folder_path, 'model_data.xlsx'), sheet_name='points')
