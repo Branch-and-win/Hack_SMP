@@ -99,6 +99,22 @@ class Model:
 			)
 		constraints_from_dict(cons_max_vessels_assistance, self.model, 'cons_max_vessels_assistance')
 
+		# Ограничение на баланс ледоколов
+		europe_points = [1, 14, 15, 16, 6, 34, 25, 10, 11, 35, 13, 0, 43, 7, 36, 20, 19]
+		cons_icebreak_balance = {}
+		cons_icebreak_balance['adhoc'] = (
+			quicksum(self.model.stop_place[l] 
+				for l in self.input.locations 
+				if l.vessel.is_icebreaker
+				and l.port.id in europe_points
+			)
+			>=
+			2
+		)
+		constraints_from_dict(cons_icebreak_balance, self.model, 'cons_icebreak_balance')
+
+
+
 
 		## Целевая функция 
 
@@ -108,7 +124,6 @@ class Model:
 				quicksum(
 					(0 if l.vessel.is_icebreaker else ((l.time - l.vessel.time_start) * self.model.stop_place[l]))
 					+ (0 if l.vessel.is_icebreaker else (l.min_time_to_end_port * self.model.stop_place[l]) * 5)
-					- self.model.stop_place[l] * int(l.port == l.vessel.port_end) * 300
 					for l in self.input.locations
 				)
 				+ quicksum(
