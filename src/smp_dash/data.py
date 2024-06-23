@@ -445,6 +445,8 @@ class DashData:
             fig['data'][line_num]['line']['color'] = self.color_discrete_map[row.edge_type]
 
         fig.add_traces(go.Figure(data=legend, layout=layout).data)
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
         fig.update_layout(
             legend=dict(
                 x=0,
