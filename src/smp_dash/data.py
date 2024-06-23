@@ -155,6 +155,7 @@ class DashData:
 
     def upload_scenario(self, scenario_name: str):
         self.read_scenario_data_from_folder(scenario_name)
+
         self.fill_additional_data(scenario_name)
 
     def create_velocity_objects_for_plot(self, scenario_name):
@@ -496,15 +497,44 @@ class DashData:
             fig['data'][line_num]['marker']['size'] = 15
             fig['data'][line_num]['marker']['color'] = 'green'
 
+    def get_assistance_df(self, scenario_name, icebreaker_names, point_select=None):
+        if not icebreaker_names:
+            icebreaker_names = []
+        if point_select is None:
+            filter_deps = (
+               (self.result_departures_df['scenario_name'] == scenario_name)
+               & (self.result_departures_df['edge_type'].isin(icebreaker_names))
+               & (self.result_departures_df['is_icebreaker'] == False)
+            )
+        else:
+            point_ids = [point['customdata'] for point in point_select['points'] if 'customdata' in point]
+            filter_deps = (
+                (self.result_departures_df['scenario_name'] == scenario_name)
+                & (self.result_departures_df['edge_type'].isin(icebreaker_names))
+                & (self.result_departures_df['is_icebreaker'] == False)
+                & (self.result_departures_df['port_from_id'].isin(point_ids))
+            )
+
+        assistance_count_df = (
+            self.result_departures_df[filter_deps].groupby(['port_from', 'port_to', 'port_from_id', 'time_from_dt', 'edge_type']).agg(
+                assistance_count=('vessel_name', 'count'),
+                vessel_names=('vessel_name', lambda x: ', '.join(list(x))),
+            ).reset_index()
+        )
+        return assistance_count_df
+
     def get_assistance_plot(self, scenario_name, icebreaker_names):
         if not icebreaker_names:
             icebreaker_names = []
-        assistance_count_df = (self.result_departures_df[
-            (self.result_departures_df['scenario_name'] == scenario_name)
-            & (self.result_departures_df['edge_type'].isin(icebreaker_names))
-            & (self.result_departures_df['is_icebreaker'] == False)
-        ].groupby(['port_from_id', 'time_from_dt', 'edge_type']).agg({'vessel_name': 'count'})
-                                  .reset_index().rename(columns={'vessel_name': 'assistance_count'}))
+        assistance_count_df = self.get_assistance_df(scenario_name, icebreaker_names)
+        # assistance_count_df = (self.result_departures_df[
+        #     (self.result_departures_df['scenario_name'] == scenario_name)
+        #     & (self.result_departures_df['edge_type'].isin(icebreaker_names))
+        #     & (self.result_departures_df['is_icebreaker'] == False)
+        # ].groupby(['port_from_id', 'time_from_dt', 'edge_type']).agg(
+        #     assistance_count=('vessel_name', 'count'),
+        #     vessel_names=('vessel_name', lambda x: list(x)),
+        # ).reset_index().rename(columns={'vessel_name': 'assistance_count'}))
         assistance_stat_df = assistance_count_df.groupby(['port_from_id']).agg(
             max_count=('assistance_count', 'max'),
             min_count=('assistance_count', 'min'),

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dash import Dash, html, dcc, callback, Output, Input, dependencies, dash_table
 import plotly.graph_objects as go
 import plotly.express as px
@@ -87,7 +89,9 @@ def layout():
             html.Div(
                 id="geo-map-loading-outer",
                 children=[
-                    dcc.Graph(id='assistance-graph-gant')
+                    html.Br(),
+                    html.P("Детальные данные о проводках ледоколами"),
+                    html.Div(id='assistance-graph-gant')
                 ],
             ),
             html.Br()
@@ -106,14 +110,14 @@ def update_assistance_graph(scenario_name, icebreaker_names):
     return fig
 
 
-@callback(
-    Output("assistance-graph-gant", "figure"),
-    [
-        Input("assistance-map", "selectedData"),
-        Input('assistance-scenario-dropdown', 'value'),
-        Input('assistance-icebreaker-dropdown', 'value'),
-    ],
-)
+# @callback(
+#     Output("assistance-graph-gant", "figure"),
+#     [
+#         Input("assistance-map", "selectedData"),
+#         Input('assistance-scenario-dropdown', 'value'),
+#         Input('assistance-icebreaker-dropdown', 'value'),
+#     ],
+# )
 def update_assistance_gant(point_select, scenario_name, icebreaker_names):
     if icebreaker_names is None:
         icebreaker_names = []
@@ -141,3 +145,46 @@ def update_assistance_gant(point_select, scenario_name, icebreaker_names):
         hover_data=['integer_ice', 'speed', 'max_speed', 'port_from', 'port_to']
     )
     return gant_fig
+
+@callback(
+    Output('assistance-graph-gant', 'children'),
+    [
+        Input("assistance-map", "selectedData"),
+        Input('assistance-scenario-dropdown', 'value'),
+        Input('assistance-icebreaker-dropdown', 'value'),
+    ],
+)
+def update_summary_table(point_select, scenario_name, icebreaker_names):
+    assistance_df = dash_data.get_assistance_df(scenario_name, icebreaker_names, point_select)[
+        ['port_from', 'port_to', 'time_from_dt', 'edge_type', 'assistance_count', 'vessel_names']
+    ]
+    assistance_df['time_from_str'] = assistance_df['time_from_dt'].apply(lambda dt: datetime.strftime(dt, '%d-%m-%Y %H-%M'))
+    assistance_df.sort_values(by=['assistance_count', 'time_from_dt'], ascending=[False, True], inplace=True)
+    assistance_df.drop(['time_from_dt'], axis=1, inplace=True)
+    rename_dict = {
+        'port_from': 'Порт начала проводки',
+        'port_to': 'Порт окончания проводки',
+        'time_from_str': 'Дата начала проводки',
+        'edge_type': 'Ледокол, осуществляющий проводку',
+        'assistance_count': 'Количество судов под проводкой',
+        'vessel_names': 'Список судов под проводкой'
+    }
+    assistance_df.rename(columns=rename_dict, inplace=True)
+    assistance_df = assistance_df[list(rename_dict.values())]
+    return dash_table.DataTable(
+        id="scenario-summary-table",
+        columns=[{"name": i, "id": i} for i in assistance_df.columns],
+        data=assistance_df.to_dict('records'),
+        # filter_action="native",
+        page_size=10,
+        style_table={'overflowX': 'auto'},
+        style_cell={
+            "background-color": "#242a3b",
+            "color": "white",
+            'height': 'auto',
+            'whiteSpace': 'normal',
+            'minWidth': '90px', 'width': '90px', 'maxWidth': '90px',
+        },
+        style_as_list_view=False,
+        style_header={"background-color": "#1f2536", "padding": "0px 5px"},
+    )
