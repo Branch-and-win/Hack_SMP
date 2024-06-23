@@ -155,7 +155,6 @@ class DashData:
 
     def upload_scenario(self, scenario_name: str):
         self.read_scenario_data_from_folder(scenario_name)
-
         self.fill_additional_data(scenario_name)
 
     def create_velocity_objects_for_plot(self, scenario_name):
@@ -389,42 +388,78 @@ class DashData:
         vessel_route_df = self.result_departures_df[
             (self.result_departures_df['vessel_name'] == vessel_name)
             & (self.result_departures_df['scenario_name'] == scenario_name)
+            & ~(self.result_departures_df['edge_type'].isin(['Порт назначения', 'Ожидание']))
         ]
         scenario_ports_dict = self.ports_dict[scenario_name]
-        vessel_route_port_list = []
+        layout = go.Layout(
+            yaxis=dict(
+                range=[self.ports_df['latitude'].min(), self.ports_df['latitude'].max()]
+            ),
+            xaxis=dict(
+                range=[self.ports_df['longitude'].min(), self.ports_df['longitude'].max()]
+            )
+        )
+        legend = [
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                name=color_type,
+                marker=dict(size=10, color=color, symbol='circle'),
+            )
+            for color_type, color in self.color_discrete_map.items()
+        ]
         for i, row in enumerate(vessel_route_df.itertuples()):
             port_from_lon, port_from_lat = (
                 scenario_ports_dict[row.port_from_id]['longitude'],
                 scenario_ports_dict[row.port_from_id]['latitude']
             )
-            vessel_route_port_list.append(
-                (port_from_lon, port_from_lat, row.integer_ice, row.speed, row.max_speed)
+            port_to_lon, port_to_lat = (
+                scenario_ports_dict[row.port_to_id]['longitude'],
+                scenario_ports_dict[row.port_to_id]['latitude']
             )
-            if i == len(vessel_route_df) - 1:
-                port_to_lon, port_to_lat = (
-                    scenario_ports_dict[row.port_to_id]['longitude'],
-                    scenario_ports_dict[row.port_to_id]['latitude']
-                )
-                vessel_route_port_list.append(
-                    (port_to_lon, port_to_lat)
-                )
-        vessel_route_port_df = pd.DataFrame(
-            vessel_route_port_list,
-            columns=[
-                'longitude',
-                'latitude',
-                'integer_ice',
-                'speed',
-                'max_speed',
+            vessel_route_port_list = [
+                (port_from_lon, port_from_lat, row.integer_ice, row.speed, row.max_speed),
+                (port_to_lon, port_to_lat, row.integer_ice, row.speed, row.max_speed)
             ]
-        )
-        fig.add_traces(
-            px.line_mapbox(vessel_route_port_df, lat="latitude", lon="longitude", hover_data=['integer_ice', 'speed', 'max_speed']).data
-        )
-        line_num = len(fig['data']) - 1
-        fig['data'][line_num]['line']['width'] = 5
-        fig['data'][line_num]['line']['color'] = 'red'
+            vessel_route_port_df = pd.DataFrame(
+                vessel_route_port_list,
+                columns=[
+                    'longitude',
+                    'latitude',
+                    'integer_ice',
+                    'speed',
+                    'max_speed',
+                ]
+            )
+            fig.add_traces(
+                px.line_mapbox(
+                    vessel_route_port_df,
+                    lat="latitude",
+                    lon="longitude",
+                    hover_data=['integer_ice', 'speed', 'max_speed']
+                ).data
+            )
+            line_num = len(fig['data']) - 1
+            fig['data'][line_num]['line']['width'] = 5
+            fig['data'][line_num]['line']['color'] = self.color_discrete_map[row.edge_type]
 
+        fig.add_traces(go.Figure(data=legend, layout=layout).data)
+        fig.update_layout(
+            legend=dict(
+                x=0,
+                y=1,
+                title_font_family="Times New Roman",
+                font=dict(
+                    family="Courier",
+                    size=12,
+                    color="black"
+                ),
+                bgcolor="LightSteelBlue",
+                bordercolor="Black",
+                borderwidth=2
+            )
+        )
         self.add_start_stop_to_fig(fig, scenario_name, vessel_name)
 
     def get_vessel_best_routes(self, scenario_name, vessel_name, date_str, k):
