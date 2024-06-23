@@ -175,15 +175,18 @@ class Model:
 		linkage_departures = defaultdict(list)
 		len_linkage = defaultdict(int)
 		vessel_departures = defaultdict(list)
+		edges_with_assistance = set()
 		for d in self.model.departure_result.keys():
-			if d.edge.port_from.id != d.edge.port_to.id and d.is_icebreaker_assistance:
+			if d.edge.port_from.id != d.edge.port_to.id:
 				linkage_departures[d.edge.port_from.id, d.edge.port_to.id, d.time].append(d)
 				len_linkage[d.edge.port_from.id, d.edge.port_to.id, d.time] += 1
 				vessel_departures[d.vessel.id].append(d)
+			if d.is_icebreaker_assistance:
+				edges_with_assistance.add((d.edge.port_from.id, d.edge.port_to.id, d.time))
 
 
 		LINKAGES = sorted([linkage for linkage in linkage_departures.keys() 
-					if len_linkage[linkage] > 1], key=lambda x: x[2])
+					if len_linkage[linkage] > 1 and linkage in edges_with_assistance], key=lambda x: x[2])
 
 		# Сортируем отправления по дате
 		for vessel_id in vessel_departures.keys():
