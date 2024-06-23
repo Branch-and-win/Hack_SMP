@@ -114,9 +114,13 @@ def layout():
 )
 def update_vessel_dropdown(value):
     possible_vessels = list(dash_data.result_departures_df[dash_data.result_departures_df['scenario_name'] == value]['vessel_name'].unique())
+    if 'ШТУРМАН КОШЕЛЕВ' in possible_vessels:
+        display_value = 'ШТУРМАН КОШЕЛЕВ'
+    else:
+        display_value = possible_vessels[0]
     return (
-            possible_vessels,
-            possible_vessels[0]
+        possible_vessels,
+        display_value
     )
 
 
