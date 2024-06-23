@@ -576,8 +576,6 @@ class DashData:
                     + f" {row.min_count}"
                     + "<br>Максимальное количество судов в караване:"
                     + f" {row.max_count}"
-                    + "<br>Общее количество судов в караване:"
-                    + f" {row.sum_count}"
                 )
             )
 
