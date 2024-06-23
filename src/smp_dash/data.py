@@ -191,6 +191,7 @@ class DashData:
                     height=900,
                 )
             )
+
             edges = []
             edges_avg_norm = []
             for edge in velocity_grouped.itertuples():
@@ -229,6 +230,32 @@ class DashData:
                 else:
                     color = 'black'
                 velocity_fig['data'][1 + i]['line']['color'] = color
+
+            icebreakers_departures = self.result_departures_df[
+                (self.result_departures_df['time_from_dt'] >= date)
+                & (self.result_departures_df['is_icebreaker'] == True)
+            ].groupby('vessel_name').nth(0).reset_index()
+            icebreakers_departures['longitude'] = icebreakers_departures['port_from_id'].apply(
+                lambda x: scenario_ports_dict[x]['longitude']
+            )
+            icebreakers_departures['latitude'] = icebreakers_departures['port_from_id'].apply(
+                lambda x: scenario_ports_dict[x]['latitude']
+            )
+            velocity_fig.add_traces(
+                px.scatter_mapbox(
+                    icebreakers_departures,
+                    lat="latitude",
+                    lon="longitude",
+                    text="vessel_name",
+                    zoom=2,
+                    height=900,
+                    color="vessel_name",
+                    color_discrete_map=self.color_discrete_map
+                ).data
+            )
+            for i in range(len(icebreakers_departures)):
+                line_num = len(velocity_fig['data']) - 1 - i
+                velocity_fig['data'][line_num]['marker']['size'] = 15
 
             velocity_fig.update_layout(mapbox_style="open-street-map")
             velocity_fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
