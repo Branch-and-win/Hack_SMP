@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dash import Dash, html, dcc, callback, Output, Input, dependencies, dash_table
 import plotly.graph_objects as go
 import plotly.express as px
@@ -42,11 +44,6 @@ def layout():
         get_sidebar(__name__),
         html.Div([
             html.H1(children='Дашборд сервиса по планированию маршрутов атомных ледоколов по СМП', style={'textAlign': 'center'}, className='my-head'),
-                # html.Div(className='parent', children=[
-                #     dcc.Graph(id='plot1', className='plot'),
-                #     html.Div(className='spacer'),
-                #     dcc.Graph(id='plot2', className='plot'),
-                # ]),
 
             html.Div(
                 id="route-upper-container",
@@ -131,6 +128,7 @@ def update_vessel_dropdown(value):
     Input('route-vessel-dropdown', 'value')
 )
 def update_route_graph(scenario_name, vessel_name):
+    print(f'Created route {vessel_name} {datetime.now()}')
     if vessel_name != 'Пусто':
         route_fig = go.Figure(dash_data.base_map_fig[scenario_name])
         dash_data.add_vessel_route(route_fig, vessel_name, scenario_name)

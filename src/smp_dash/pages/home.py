@@ -39,6 +39,7 @@ def get_sidebar(active_item=None):
     ])
     return nav
 
+
 def build_upper_left_panel():
     return html.Div(
         id="upper-left",
@@ -61,6 +62,7 @@ def build_upper_left_panel():
             ),
         ],
     )
+
 
 def layout():
     layout = [
@@ -99,6 +101,7 @@ def layout():
     ]
     return layout
 
+
 @callback(
     Output('home-graph-gant', 'figure'),
     Input('home-scenario-dropdown', 'value'),
@@ -126,6 +129,7 @@ def update_graph(scenario_name):
     )
     return gant_fig
 
+
 @callback(
     Output('scenario-summary-table-container', 'children'),
     Input('home-scenario-dropdown', 'value'),
@@ -148,6 +152,7 @@ def update_summary_table(scenario_name):
         style_as_list_view=False,
         style_header={"background-color": "#1f2536", "padding": "0px 5px"},
     )
+
 
 @callback(
     Output('scenario-detailed-table-container', 'children'),

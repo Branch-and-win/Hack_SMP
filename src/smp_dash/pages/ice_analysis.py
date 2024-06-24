@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dash import html, dcc, callback, Output, Input, dependencies
 
 from src.smp_dash.data import dash_data
@@ -7,7 +9,6 @@ from src.smp_dash.pages.home import get_sidebar
 def build_upper_left_panel():
     return html.Div(
         id="upper-left",
-        # className="ten columns",
         children=[
             html.Div(
                 className="row",
@@ -92,6 +93,7 @@ def update_ice_dropdown(value):
     Input('ice-slider', 'value')
 )
 def update_ice_graph(scenario_name, mark):
+    print(f'Created ice {mark} {datetime.now()}')
     if mark is None:
         return dash_data.base_map_fig[scenario_name]
     return dash_data.velocity_plot_points_figs[scenario_name][dash_data.scenario_marks_mapping[scenario_name][mark]]
