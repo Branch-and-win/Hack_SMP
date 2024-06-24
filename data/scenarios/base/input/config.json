@@ -1,9 +1,9 @@
 {
     "start_date": "27-02-2022",
-    "end_date": "5-05-2022",
+    "end_date": "10-05-2022",
     "duration_days": 7,
-    "cross_days": 5,
+    "cross_days": 2,
     "interval_hours": 1,
-    "timelimit": 900,
-    "k_bests": 5
+    "timelimit": 1200,
+    "k_bests": 10
 }
