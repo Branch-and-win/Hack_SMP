@@ -7,7 +7,6 @@ from src.smp_dash.pages import home, ice_analysis, route_analysis, upload_scenar
     assistance_analysis
 
 load_figure_template(["darkly"])
-# dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css"
 
 app = Flask(__name__, instance_relative_config=True)
 dash_app = Dash(

@@ -81,14 +81,6 @@ def layout():
                 children=[
                     dcc.Graph(
                         id="best-routes-map",
-                        # figure={
-                        #     "data": [],
-                        #     "layout": dict(
-                        #         plot_bgcolor="#171b26",
-                        #         paper_bgcolor="#171b26",
-                        #     ),
-                        # },
-                        # style={"height": "60vh"}
                     ),
                 ],
             ),
@@ -98,16 +90,6 @@ def layout():
     ]
     return layout
 
-
-# @callback(
-#     dependencies.Output('ice-slider', 'min'),
-#     dependencies.Output('ice-slider', 'max'),
-#     dependencies.Output('ice-slider', 'value'),
-#     dependencies.Output('ice-slider', 'marks'),
-#     [dependencies.Input('ice-scenario-dropdown', 'value')]
-# )
-# def update_ice_dropdown(value):
-#     return 0, len(dash_data.scenario_marks_mapping[value]) - 1, 0, dash_data.scenario_marks_mapping[value]
 
 @callback(
     dependencies.Output('best-route-vessel-dropdown', 'options'),

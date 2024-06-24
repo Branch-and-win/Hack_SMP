@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from dash import html, dcc, callback, Output, Input, dash_table
 import plotly.express as px
 
@@ -102,12 +104,19 @@ def layout():
     Input('home-scenario-dropdown', 'value'),
 )
 def update_graph(scenario_name):
+    print(f'Created gant {datetime.now()}')
     gant_df = dash_data.result_departures_df[
         (dash_data.result_departures_df.scenario_name == scenario_name)
     ]
-    gant_fig = px.timeline(gant_df, x_start="time_from_dt", x_end="time_to_dt", y="vessel_name",
-                       color="edge_type", color_discrete_map=dash_data.color_discrete_map, category_orders=dash_data.category_orders,
-                           hover_data=['integer_ice', 'speed', 'max_speed', 'port_from', 'port_to'])
+    gant_fig = px.timeline(
+        gant_df,
+        x_start="time_from_dt",
+        x_end="time_to_dt", y="vessel_name",
+        color="edge_type",
+        color_discrete_map=dash_data.color_discrete_map,
+        category_orders=dash_data.category_orders,
+        hover_data=['integer_ice', 'speed', 'max_speed', 'port_from', 'port_to']
+    )
     for sctart_velocity_date in dash_data.start_planning_dates_df[
         (dash_data.start_planning_dates_df['scenario_name'] == scenario_name)
     ]['date'].unique():
